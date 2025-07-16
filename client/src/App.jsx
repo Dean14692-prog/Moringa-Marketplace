@@ -1,12 +1,22 @@
 
 import './App.css'
+import Footer from './components/footer';
+import Herossection from './components/herossection';
+import Navbar from './components/navbar';
+import FloatingDockDemo  from './components/navbar';
+import AnimatedTestimonialsDemo from './components/testimonials'
 
 function App() {
   
 
   return (
     <>
-      <h1 class="text-3xl font-bold underline bg-amber-600">Hello world!</h1>
+      <div>
+        <Navbar />
+        <Herossection />
+        <AnimatedTestimonialsDemo />
+        <Footer />
+      </div>
     </>
   );
 }
