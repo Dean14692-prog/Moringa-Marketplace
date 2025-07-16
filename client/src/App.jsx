@@ -1,34 +1,26 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import './App.css';
+import './App.css'
+import Carousel from './components/carousel';
 import Footer from './components/footer';
 import Herossection from './components/herossection';
 import Navbar from './components/navbar';
-import AnimatedTestimonialsDemo from './components/testimonials';
-import Signup from './pages/signup';
-import Login from "./pages/login";
-import Home from "./pages/home";
+import BackgroundGradientDemo from './components/projectpreview';
+import AnimatedTestimonialsDemo from './components/testimonials'
+
 
 function App() {
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Herossection />
-              <AnimatedTestimonialsDemo />
-              <Footer />
-            </>
-          }
-        />
-        <Route path="/home" element={<Home />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        
-      </Routes>
-    </Router>
+
+    <>
+      <div>
+        <Navbar />
+        <Herossection />
+        <Carousel />
+        <BackgroundGradientDemo />
+        <AnimatedTestimonialsDemo />
+        <Footer />
+      </div>
+    </>
+
   );
 }
 
