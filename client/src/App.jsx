@@ -1,4 +1,3 @@
-
 import './App.css'
 import Carousel from './components/carousel';
 import Footer from './components/footer';
@@ -7,10 +6,10 @@ import Navbar from './components/navbar';
 import BackgroundGradientDemo from './components/projectpreview';
 import AnimatedTestimonialsDemo from './components/testimonials'
 
-function App() {
-  
 
+function App() {
   return (
+
     <>
       <div>
         <Navbar />
@@ -21,7 +20,9 @@ function App() {
         <Footer />
       </div>
     </>
+
   );
 }
 
-export default App
+export default App;
+
