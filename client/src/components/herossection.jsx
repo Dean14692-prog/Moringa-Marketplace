@@ -21,7 +21,7 @@ const Herossection = () => {
             real-world impact
           </span>
           . <br />
-          Demo. Hire. Shop. Repeat.
+          Demo. Hire. Shop. Repeat. Yes
         </p>
 
         <button className="mt-6 px-8 py-3 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 hover:scale-105 transition duration-300 ease-in-out rounded-full text-lg font-semibold shadow-lg text-white">
