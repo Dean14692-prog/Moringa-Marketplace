@@ -1,3 +1,7 @@
+// src/components/Herossection.jsx
+import React from 'react';
+import { Link } from 'react-router-dom'; // Import Link
+
 const Herossection = () => {
   return (
     <div
@@ -24,9 +28,19 @@ const Herossection = () => {
           Demo. Hire. Shop. Repeat.
         </p>
 
-        <button className="mt-6 px-8 py-3 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 hover:scale-105 transition duration-300 ease-in-out rounded-full text-lg font-semibold shadow-lg text-white">
-          Browse Projects
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row gap-4">
+          <button className="px-8 py-3 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 hover:scale-105 transition duration-300 ease-in-out rounded-full text-lg font-semibold shadow-lg text-white">
+            Browse Projects
+          </button>
+
+          {/* Reverting this change: Now links directly to /dashboard */}
+          <Link
+            to="/dashboard" // <--- REVERTED: Links directly to /dashboard
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 hover:scale-105 transition duration-300 ease-in-out rounded-full text-lg font-semibold shadow-lg text-white inline-flex items-center justify-center"
+          >
+            Go to My Dashboard
+          </Link>
+        </div>
       </div>
     </div>
   );
