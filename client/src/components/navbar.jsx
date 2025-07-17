@@ -96,7 +96,7 @@ export default function Navbar() {
                             Email
                           </p>
                           <p className="text-sm text-gray-600">
-                            hello@myapp.com
+                            group1@gmail.com
                           </p>
                         </div>
                       </div>
@@ -111,7 +111,7 @@ export default function Navbar() {
                             Phone
                           </p>
                           <p className="text-sm text-gray-600">
-                            +1 (555) 123-4567
+                            +254767890987{" "}
                           </p>
                         </div>
                       </div>
