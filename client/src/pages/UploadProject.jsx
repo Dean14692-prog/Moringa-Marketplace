@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { CheckCircle } from "lucide-react";
 
 const UploadProject = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +15,8 @@ const UploadProject = () => {
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -38,6 +42,7 @@ const UploadProject = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const submission = new FormData();
     submission.append("title", formData.title);
@@ -46,45 +51,45 @@ const UploadProject = () => {
     submission.append("githubLink", formData.githubLink);
     submission.append("demoLink", formData.demoLink);
     submission.append("forSale", formData.forSale);
-    if (formData.forSale) {
-      submission.append("price", formData.price);
-    }
-    if (formData.file) {
-      submission.append("file", formData.file);
-    }
-
-    // Add status so backend knows it's for review
+    if (formData.forSale) submission.append("price", formData.price);
+    if (formData.file) submission.append("file", formData.file);
     submission.append("status", "Pending");
 
     try {
-      const response = await fetch("http://localhost:5000/api/projects", {
+      const res = await fetch("http://localhost:5000/api/projects", {
         method: "POST",
         body: submission,
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!res.ok) throw new Error("Upload failed");
 
-      alert(" Project submitted for admin approval.");
-      setFormData({
-        title: "",
-        category: "",
-        description: "",
-        githubLink: "",
-        demoLink: "",
-        forSale: false,
-        price: "",
-        file: null,
-      });
-      setPreviewUrl(null);
+      setSuccess(true);
+      setTimeout(() => {
+        setFormData({
+          title: "",
+          category: "",
+          description: "",
+          githubLink: "",
+          demoLink: "",
+          forSale: false,
+          price: "",
+          file: null,
+        });
+        setPreviewUrl(null);
+        setSuccess(false);
+        setLoading(false);
+      }, 2000);
     } catch (err) {
       console.error(err);
       alert("❌ Something went wrong. Try again.");
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow-md">
+    <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow-md mt-6">
       <h1 className="text-2xl font-bold mb-4">Upload New Project</h1>
+
       <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
         <input
           type="text"
@@ -95,6 +100,7 @@ const UploadProject = () => {
           className="w-full border p-2 rounded"
           required
         />
+
         <input
           type="text"
           name="category"
@@ -104,6 +110,7 @@ const UploadProject = () => {
           className="w-full border p-2 rounded"
           required
         />
+
         <textarea
           name="description"
           placeholder="Project Description"
@@ -113,6 +120,7 @@ const UploadProject = () => {
           rows="4"
           required
         />
+
         <input
           type="url"
           name="githubLink"
@@ -122,6 +130,7 @@ const UploadProject = () => {
           className="w-full border p-2 rounded"
           required
         />
+
         <input
           type="url"
           name="demoLink"
@@ -130,6 +139,7 @@ const UploadProject = () => {
           onChange={handleChange}
           className="w-full border p-2 rounded"
         />
+
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -139,6 +149,7 @@ const UploadProject = () => {
           />
           Mark as for sale
         </label>
+
         {formData.forSale && (
           <input
             type="number"
@@ -173,12 +184,55 @@ const UploadProject = () => {
           )}
         </div>
 
-        <button
+        <motion.button
           type="submit"
-          className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow"
+          disabled={loading}
+          className={`relative flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded shadow font-semibold transition ${
+            loading ? "opacity-60 cursor-not-allowed" : ""
+          }`}
+          whileHover={!loading && { scale: 1.05 }}
+          whileTap={!loading && { scale: 0.95 }}
+          animate={
+            !loading &&
+            !success && {
+              boxShadow: ["0 0 0px #f59e0b", "0 0 10px #f59e0b", "0 0 0px #f59e0b"],
+            }
+          }
+          transition={{ duration: 1.5, repeat: Infinity }}
         >
-          Upload Project
-        </button>
+          {loading ? (
+            <>
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+              Uploading...
+            </>
+          ) : success ? (
+            <>
+              <CheckCircle className="h-5 w-5 text-white" />
+              Uploaded!
+            </>
+          ) : (
+            "Upload Project"
+          )}
+        </motion.button>
       </form>
     </div>
   );
