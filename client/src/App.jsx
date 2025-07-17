@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import './App.css'
+// import StudentDashboard from './pages/StudentDashboard';
 import Carousel from './components/carousel';
 import Footer from './components/footer';
 import Herossection from './components/herossection';
@@ -17,6 +18,7 @@ function App() {
         <BackgroundGradientDemo />
         <AnimatedTestimonialsDemo />
         <Footer />
+        {/* <StudentDashboard /> */}
       </div>
     </>
   );
