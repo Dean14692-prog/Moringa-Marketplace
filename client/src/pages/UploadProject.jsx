@@ -163,7 +163,7 @@ const UploadProject = () => {
 
           {previewUrl && (
             <div className="mt-4">
-              <p className="text-sm text-gray-600 mb-1">Image Preview:</p>
+              <p className="text-sm text-blue-300 mb-1">Image Preview:</p>
               <img
                 src={previewUrl}
                 alt="Preview"
