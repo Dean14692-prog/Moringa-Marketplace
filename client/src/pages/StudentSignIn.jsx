@@ -5,21 +5,47 @@ import { useNavigate } from 'react-router-dom';
 const StudentSignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // New state for loading indicator
+  const [error, setError] = useState(null);     // New state for error messages
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Made the function async
     e.preventDefault();
-    // In a real application, you would send these credentials to your backend
-    // for authentication. For now, we'll simulate a successful login.
+    setLoading(true); // Start loading
+    setError(null);   // Clear previous errors
 
-    console.log('Attempting sign-in with:', { email, password });
+    try {
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Simulate successful login and redirect to the actual dashboard
-    // You would replace this with actual token handling and verification
-    setTimeout(() => { // Simulate API call delay
-      alert('Simulated Sign-in Successful!');
-      navigate('/dashboard'); // Navigate to the Student Dashboard
-    }, 500);
+      const data = await response.json(); // Parse the JSON response
+
+      if (response.ok) { // Check if the response status is 200-299
+        console.log('Login Successful:', data);
+        // Store the JWT token in localStorage
+        localStorage.setItem('jwt_token', data.access_token);
+        // Optionally, store basic student data if needed for initial dashboard load
+        // (though dashboard will fetch its own /api/me anyway)
+        // localStorage.setItem('student_info', JSON.stringify(data.student));
+
+        alert('Sign-in Successful!');
+        navigate('/dashboard'); // Navigate to the Student Dashboard
+      } else {
+        // Handle login errors (e.g., invalid credentials)
+        console.error('Login Failed:', data.msg || 'Unknown error');
+        setError(data.msg || 'Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      console.error('Network Error:', err);
+      setError('Network error. Please try again later.');
+    } finally {
+      setLoading(false); // End loading
+    }
   };
 
   return (
@@ -57,15 +83,20 @@ const StudentSignIn = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+          {error && ( // Display error message if present
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out"
+            disabled={loading} // Disable button when loading
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out
+              ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'} {/* Change button text during loading */}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account? <a href="/signup" className="font-medium text-blue-600 hover:text-blue-500">Sign Up</a> {/* Assuming you'll add a signup page later */}
+          Don't have an account? <a href="/signup" className="font-medium text-blue-600 hover:text-blue-500">Sign Up</a>
         </p>
       </div>
     </div>

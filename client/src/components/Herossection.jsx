@@ -33,9 +33,9 @@ const Herossection = () => {
             Browse Projects
           </button>
 
-          {/* Reverting this change: Now links directly to /dashboard */}
+          {/* ✅ CHANGE: This Link now points to /student-signin */}
           <Link
-            to="/dashboard" // <--- REVERTED: Links directly to /dashboard
+            to="/student-signin" // Changed from /dashboard to /student-signin
             className="px-8 py-3 bg-blue-600 hover:bg-blue-700 hover:scale-105 transition duration-300 ease-in-out rounded-full text-lg font-semibold shadow-lg text-white inline-flex items-center justify-center"
           >
             Go to My Dashboard

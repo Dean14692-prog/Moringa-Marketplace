@@ -8,7 +8,8 @@ import StudentDashboard from './pages/StudentDashboard';
 import Projects from './pages/Projects';
 import Profile from './pages/Profile';
 import UploadProject from './pages/UploadProject';
-import StudentSignIn from './pages/StudentSignIn'; // <--- NEW: Import the StudentSignIn page
+import StudentSignIn from './pages/StudentSignIn';
+import StudentSignUp from './pages/signup'; // <--- NEW: Import your actual Sign Up component
 
 function App() {
   return (
@@ -18,8 +19,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Herossection />} />
 
-            {/* NEW: Add a route for the Student Sign-in page */}
+            {/* Route for the Student Sign-in page */}
             <Route path="/student-signin" element={<StudentSignIn />} />
+
+            {/* NEW: Add a route for your Student Sign-up page */}
+            <Route path="/signup" element={<StudentSignUp />} />
 
             <Route path="/dashboard" element={<StudentDashboard />}>
               <Route path="projects" element={<Projects />} />
@@ -40,7 +44,7 @@ function App() {
                You also have these pages in src/pages:
                about.jsx, checkout.jsx, contact.jsx, hirerequest.jsx, login.jsx,
                nopage.jsx, orderlist.jsx, projectcart.jsx, projectlist.jsx,
-               shoppingpage.jsx, signup.jsx, studentprofile.jsx
+               shoppingpage.jsx, studentprofile.jsx
 
                If you want these to be accessible via URL, you need to import them
                and add <Route> components for them within your <Routes>.
