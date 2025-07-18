@@ -1,15 +1,15 @@
-
-from flask import Flask, request, jsonify, Blueprint, send_from_directory
+from  flask import Flask,jsonify,request,send_from_directory,Blueprint
+from flask_restful import Api
+from models import db, Student, Project
+import os
 from flask_cors import CORS
 from dotenv import load_dotenv
-import os
-from werkzeug.utils import secure_filename
-from extensions import db, jwt, migrate
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity 
 
-# Get the absolute path to the directory where app.py resides
-# This makes sure load_dotenv looks in the correct place explicitly
-basedir = os.path.abspath(os.path.dirname(_file_))
+from werkzeug.utils import secure_filename
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager,create_access_token,create_refresh_token,jwt_required,get_jwt_identity
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 dotenv_path = os.path.join(basedir, '.env')
 
 print(f"DEBUG: Attempting to load .env from: {dotenv_path}") 
@@ -37,35 +37,32 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
+ 
+# # create configue file 
+# app.config. form_object(config)
+
 db.init_app(app)
-jwt.init_app(app)
-migrate.init_app(app, db)
+migrate=Migrate(app,db)
+JWTManager(app)
+api=Api(app)
+api=Api(app)
+# later add name spaces
 
-from models import Student, Project
-
-with app.app_context():
-   db.create_all()
-
-# Serve uploaded files from the 'uploads' directory
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-
 api_bp = Blueprint('api', __name__, url_prefix='/api')
-
-
+send_from_directory
 def allowed_file(filename):
-   
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS 
 
-@app.route("/")
-def index():
-    return {"message": "Welcome To Moringa Innovation Marketplace"}
+@app.route('/')
+def home():
+    return {"message": "Welcome To Moringa MarketPlace"}
 
-
-@api_bp.route('/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register_student():
     data = request.get_json()
     name = data.get('name')
@@ -95,7 +92,7 @@ def register_student():
 
     return jsonify(new_student.serialize()), 201
 
-@api_bp.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
 def login_student():
     data = request.get_json()
     email = data.get('email')
@@ -108,13 +105,11 @@ def login_student():
 
     if student and student.check_password(password):
         access_token = create_access_token(identity=student.id)
-       
-        return jsonify(access_token=access_token, student=student.serialize()), 200
+        refresh_token = create_refresh_token(identity=student.id)
+        return jsonify({"access_token": access_token, "refresh_token": refresh_token}), 200
     return jsonify({"msg": "Invalid credentials"}), 401
 
-# --- Protected Student-Specific Routes ---
-
-@api_bp.route('/me', methods=['GET'])
+@app.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_student_profile():
     current_student_id = get_jwt_identity()
@@ -123,7 +118,7 @@ def get_current_student_profile():
         return jsonify({"msg": "Student not found"}), 404
     return jsonify(student.serialize()), 200
 
-@api_bp.route('/me', methods=['PATCH'])
+@app.route('/me', methods=['PATCH'])
 @jwt_required()
 def update_student_profile():
     """Update parts of the current student's profile."""
@@ -147,25 +142,19 @@ def update_student_profile():
     db.session.commit()
     return jsonify(student.serialize()), 200
 
-
-@api_bp.route('/me/projects', methods=['GET'])
+@app.route('/me/projects', methods=['GET'])
 @jwt_required()
 def get_my_projects():
     """Get all projects uploaded by the currently logged-in student (for their dashboard)."""
     current_student_id = get_jwt_identity()
-  
     projects = Project.query.filter_by(student_id=current_student_id).all()
     return jsonify([project.serialize() for project in projects]), 200
 
-
-
-@api_bp.route('/projects', methods=['POST'])
+@app.route('/projects', methods=['POST'])
 @jwt_required() 
 def upload_project():
     """Upload a new project, handling file upload."""
     current_student_id = get_jwt_identity()
-
-   
     title = request.form.get('title')
     category = request.form.get('category')
     description = request.form.get('description')
@@ -173,7 +162,7 @@ def upload_project():
     demo_link = request.form.get('demoLink')    
     for_sale = request.form.get('forSale', 'false').lower() == 'true'
     price = float(request.form.get('price', 0))
-
+    
     if not all([title, category, description, github_link]):
         return jsonify({"msg": "Missing required project fields"}), 400
 
@@ -182,7 +171,7 @@ def upload_project():
         file = request.files['file']
         if file.filename == '':
             return jsonify({"msg": "No selected file"}), 400
-       
+    
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -207,7 +196,22 @@ def upload_project():
 
     return jsonify(new_project.serialize()), 201
 
-@api_bp.route('/projects', methods=['GET'])
+@app.route('/me/projects', methods=['DELETE'])
+@jwt_required()
+def delete_my_projects():
+    """get and delete a project uploaded by the currently logged-in student (for their dashboard)."""
+    current_student_id = get_jwt_identity()
+
+    project_id = request.args.get('project_id')
+    project = Project.query.filter_by(id=project_id, student_id=current_student_id).first()
+    if not project:
+        return jsonify({"msg": "Project not found"}), 404
+
+    db.session.delete(project)
+    db.session.commit()
+    return jsonify({"msg": "Project deleted"}), 200
+
+@api.route('/projects', methods=['GET'])
 def get_all_approved_projects():
     """Get all projects with 'Approved' status (for the public Projects page)."""
     projects = Project.query.filter_by(status="Approved").all()
@@ -225,5 +229,5 @@ def get_project_by_id(project_id):
 
 app.register_blueprint(api_bp)
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     app.run(debug=True, port=5000)
