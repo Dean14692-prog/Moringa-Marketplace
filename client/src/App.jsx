@@ -1,30 +1,30 @@
-import './App.css'
-// import StudentDashboard from './pages/StudentDashboard';
-import Carousel from './components/carousel';
-import Footer from './components/footer';
-import Herossection from './components/herossection';
-import Navbar from './components/navbar';
-import BackgroundGradientDemo from './components/projectpreview';
-import AnimatedTestimonialsDemo from './components/testimonials'
-
+import "./App.css";
+import Landingpage from "./pages/landingpage";
+import SignupForm from "./pages/signup";
+import LoginForm from "./pages/login";
+import ProjectLayout from "./pages/projectlist";
+import EcommerceLayout from "./pages/shoppingpage";
+import Profile from "./pages/Profile"
+import MyProjects from "./pages/MyProjects";
+import UploadProject from "./pages/UploadProject";
+import { StudentDashBoard } from "./pages/StudentDashBoard";
 
 function App() {
   return (
-
     <>
       <div>
-        <Navbar />
-        <Herossection />
-        <Carousel />
-        <BackgroundGradientDemo />
-        <AnimatedTestimonialsDemo />
-        <Footer />
-        {/* <StudentDashboard /> */}
+        <Landingpage />
+        {/* <SignupForm /> */}
+        {/* <LoginForm /> */}
+        {/* <ProjectLayout /> */}
+        {/* <EcommerceLayout /> */}
+        {/* <Profile /> */}
+        {/* <MyProjects /> */}
+        {/* <UploadProject /> */}
+        {/* <StudentDashBoard /> */}
       </div>
     </>
-
   );
 }
 
 export default App;
-

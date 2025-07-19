@@ -1,6 +1,5 @@
 import React, { useRef } from "react";
 import { IconArrowNarrowLeft, IconArrowNarrowRight } from "@tabler/icons-react";
-// test
 
 const style = `
   .hide-scrollbar::-webkit-scrollbar {
@@ -9,6 +8,7 @@ const style = `
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    overflow-x: hidden;
   }
 `;
 
@@ -63,8 +63,8 @@ export default function Carousel() {
       {/* Inject scrollbar-hiding styles */}
       <style>{style}</style>
 
-      <div className="relative w-screen h-screen bg-gray-100 py-12 px-6 overflow-hidden">
-        <h2 className="text-center text-3xl font-bold mb-6">Merchandise</h2>
+      <div className="relative w-full h-screen bg-gray-100 py-12 px-6 overflow-hidden">
+        <h2 className="text-center text-3xl font-bold mb-6">Featured Projects</h2>
 
         {/* Left Arrow */}
         <button

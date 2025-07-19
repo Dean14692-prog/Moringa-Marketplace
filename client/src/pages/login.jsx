@@ -1,106 +1,91 @@
-import React, { useState } from "react";
+"use client";
+import React from "react";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
-function Login() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.email.includes("@")) newErrors.email = "Valid email required";
-    if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
-    return newErrors;
-  };
-
+export default function LoginForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setIsSubmitting(false);
-    } else {
-      console.log("Login submitted:", formData);
-      // TODO: Connect to backend
-      setIsSubmitting(false);
-    }
+    console.log("Form submitted");
   };
 
   return (
-    <div className="min-h-[100vh] flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
-          Welcome Back
+    <div className="min-h-screen w-full flex items-center justify-center bg-black px-4 overflow-hidden">
+      <div className="w-full max-w-md bg-black p-4 md:rounded-2xl md:p-8 border-none">
+        <h2 className="text-xl font-bold text-white text-center">
+          Welcome Back, Aaron
         </h2>
-        <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-300">
-          Log in to your account
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white whit:bg-zinc-900 px-3 py-2 shadow-sm transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white white:bg-zinc-900 px-3 py-2 shadow-sm transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-            {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+        <form className="my-8" onSubmit={handleSubmit}>
+          <Link
+            to="/"
+            className="absolute top-4 left-4 flex items-center gap-2 text-sm text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors duration-200"
           >
-            {isSubmitting ? "Logging in..." : "Log In"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              className="h-4 w-4"
+            >
+              <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
+            </svg>
+            <span>Home</span>
+          </Link>
+
+          <LabelInputContainer className="mb-4">
+            <Label
+              htmlFor="email"
+              className="text-sm text-white text-left m-0 p-0"
+            >
+              Email Address
+            </Label>
+            <Input
+              id="email"
+              placeholder="email adress"
+              type="email"
+              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer className="mb-4">
+            <Label
+              htmlFor="password"
+              className="text-sm text-white text-left m-0 p-0"
+            >
+              Password
+            </Label>
+            <Input
+              id="password"
+              placeholder="password"
+              type="password"
+              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            />
+          </LabelInputContainer>
+
+          <button
+            className="relative group/btn h-10 w-full rounded-md bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition"
+            type="submit"
+          >
+            Login
+            <BottomGradient />
           </button>
+          <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-600 to-transparent" />
         </form>
       </div>
     </div>
   );
 }
 
-export default Login;
+const LabelInputContainer = ({ children, className }) => {
+  return (
+    <div className={cn("flex flex-col w-full", className)}>{children}</div>
+  );
+};
+
+const BottomGradient = () => (
+  <>
+    <span className="absolute inset-x-0 -bottom-px block h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm group-hover/btn:opacity-100" />
+  </>
+);
