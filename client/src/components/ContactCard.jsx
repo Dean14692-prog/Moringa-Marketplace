@@ -47,13 +47,4 @@ const ContactCard = ({ student }) => {
 
 export default ContactCard;
 
-// student object expected from backend:
-// {
-//   "name": "Jane Doe",
-//   "email": "jane@example.com",
-//   "phone": "+254712345678",
-//   "whatsapp": "+254712345678",
-//   "linkedin": "https://linkedin.com/in/janedoe",
-//   "github": "https://github.com/janedoe",
-//   "website": "https://janedoe.dev"
-// }
+

@@ -10,7 +10,7 @@ export default function Navbar() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">MyApp</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Marketplace</h1>
             </div>
 
             {/* Navigation Links */}
