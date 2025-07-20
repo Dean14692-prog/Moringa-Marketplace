@@ -17,7 +17,6 @@ import ContactMe from "./pages/ContactMe";
 function App() {
   return (
     <>
-      <Navbar />
       <Routes>
         <Route path="/" element={<Landingpage />} />
         <Route path="/signup" element={<SignupForm />} />

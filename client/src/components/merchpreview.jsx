@@ -69,28 +69,29 @@ const cardData = [
   {
     title: "Air Jordan 4 Retro",
     description:
-      "The AJ4 Retro Reimagined Bred will release on Feb 17, 2024. Best chance is to enter raffles.",
-    price: "$100",
+      "Celebrate heritage with the reimagined AJ4 'Bred'. Dropping Feb 17, 2024 – your best shot is through raffles. Don’t miss out!",
+    price: "Ksh 14,500",
     image:
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-w4xPOgS05_VO4weMI62UTjooqhEuORSeYQ&s",
   },
   {
-    title: "Nike Dunk Low Panda",
+    title: "Water Bottle",
     description:
-      "Timeless black and white Dunk Low that pairs with any outfit. Regular restocks.",
-    price: "$90",
+      "Sleek and durable 650ml Tritan™ bottle. Leakproof, lightweight, and built for daily hydration on the go.",
+    price: "Ksh 9,000",
     image:
-      "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/e6ce2731-5c77-4877-8484-917e27647c38/dunk-low-mens-shoes-bCzchX.png",
+      "https://www.lifesystems.co.uk/cdn/shop/files/74250-tritan-bottle-650ml-grey-lifestyle-1.jpg?height=1092&v=1697708833&width=1092",
   },
   {
     title: "Yeezy Slide Pure",
     description:
-      "Minimalist Yeezy comfort. Lightweight, stylish, and iconic—perfect for everyday wear.",
-    price: "$80",
+      "Iconic Yeezy Slides in 'Pure' – ultra-soft, minimalist, and versatile. Slip into all-day comfort.",
+    price: "Ksh 11,600",
     image:
-      "https://sneakernews.com/wp-content/uploads/2022/03/adidas-yeezy-slide-pure-2022-release-date.jpg",
+      "https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/22/986196/1.jpg?7445",
   },
 ];
+
 
 // Border Gradient Component
 export const BackgroundGradient = ({
