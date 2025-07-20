@@ -8,98 +8,99 @@ const style = `
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-    overflow-x: hidden;
   }
 `;
 
 export default function Carousel() {
   const scrollRef = useRef(null);
-  const scrollAmount = 300;
+  const scrollAmount = 400;
 
   const data = [
     {
-
-      category: "T- Shirt",
-      title: "Branded T-Shirt",
-      src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-w4xPOgS05_VO4weMI62UTjooqhEuORSeYQ&s",
+      category: "Software Engineering",
+      title: "Build scalable software solutions.",
+      src: "https://picsum.photos/400/500?random=1",
     },
     {
-      category: "Books",
-      title: "NoteBook",
-      src: "https://riogiftshop.com/wp-content/uploads/2023/10/Customized-Notebooks-in-Kenya.jpg",
+      category: "Data Science",
+      title: "Data-driven decisions with insights.",
+      src: "https://picsum.photos/400/500?random=2",
     },
     {
-      category: "Product",
-      title: "Launching the new Apple Vision Pro.",
-      src: "https://images.unsplash.com/photo-1713869791518-a770879e60dc?q=80&w=2333&auto=format&fit=crop",
+      category: "Artificial Intelligence",
+      title: "AI is shaping the future.",
+      src: "https://picsum.photos/400/500?random=3",
     },
     {
-      category: "Product",
-      title: "Maps for your iPhone 15 Pro Max.",
-      src: "https://images.unsplash.com/photo-1599202860130-f600f4948364?q=80&w=2515&auto=format&fit=crop",
+      category: "Cyber Security",
+      title: "Protect your digital world.",
+      src: "https://picsum.photos/400/500?random=4",
     },
     {
-      category: "iOS",
-      title: "Photography just got better.",
-      src: "https://images.unsplash.com/photo-1602081957921-9137a5d6eaee?q=80&w=2793&auto=format&fit=crop",
+      category: "Product Design",
+      title: "Design meets innovation.",
+      src: "https://picsum.photos/400/500?random=5",
     },
     {
-      category: "Hiring",
-      title: "Hiring for a Staff Software Engineer",
-      src: "https://images.unsplash.com/photo-1511984804822-e16ba72f5848?q=80&w=2048&auto=format&fit=crop",
+      category: "Software Engineering",
+      title: "Join the engineering revolution.",
+      src: "https://picsum.photos/400/500?random=6",
     },
   ];
 
-  const handleScrollLeft = () => {
+  const scrollLeft = () => {
     scrollRef.current?.scrollBy({ left: -scrollAmount, behavior: "smooth" });
   };
 
-  const handleScrollRight = () => {
+  const scrollRight = () => {
     scrollRef.current?.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
   return (
     <>
-      {/* Inject scrollbar-hiding styles */}
       <style>{style}</style>
 
-      <div className="relative w-full h-screen bg-gray-100 py-12 px-6 overflow-hidden">
-        <h2 className="text-center text-3xl font-bold mb-6">Featured Projects</h2>
+      <div className="relative w-full min-h-screen bg-neutral-900 py-12 px-6 overflow-hidden">
+        <h2 className="text-center text-4xl font-bold text-white mb-12">
+          Explore Career Tracks
+        </h2>
 
-        {/* Left Arrow */}
+        {/* Arrows */}
         <button
-          onClick={handleScrollLeft}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md"
+          onClick={scrollLeft}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow-md"
         >
-          <IconArrowNarrowLeft size={24} />
+          <IconArrowNarrowLeft size={24} className="text-black" />
+        </button>
+        <button
+          onClick={scrollRight}
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow-md"
+        >
+          <IconArrowNarrowRight size={24} className="text-black" />
         </button>
 
-        {/* Right Arrow */}
-        <button
-          onClick={handleScrollRight}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md"
-        >
-          <IconArrowNarrowRight size={24} />
-        </button>
-
-        {/* Scrollable container */}
+        {/* Scrollable Cards */}
         <div
           ref={scrollRef}
-          className="flex gap-6 overflow-x-auto scroll-smooth px-8 hide-scrollbar"
+          className="flex gap-6 overflow-x-auto scroll-smooth px-4 hide-scrollbar"
         >
           {data.map((item, index) => (
             <div
               key={index}
-              className="min-w-[320px] flex-shrink-0 bg-white rounded-xl shadow-md overflow-hidden transition-transform hover:scale-105"
+              className="w-[360px] h-[460px] flex-shrink-0 bg-gray-900 rounded-xl overflow-hidden shadow-xl relative"
             >
               <img
                 src={item.src}
                 alt={item.title}
-                className="w-full h-100 object-cover"
+                className="w-full h-full object-cover"
               />
-              <div className="p-4">
-                <h3 className="text-xl font-semibold">{item.title}</h3>
-                <p className="text-blue-600 text-sm">{item.category}</p>
+              <div className="absolute inset-0 bg-black/50 p-4 flex flex-col justify-end">
+                <h1 className="text-lg text-white font-bold ">
+                  {item.category}
+                </h1>
+                <p className="text-xs text-white tracking-widest mb-1 font-medium">
+                  {item.title}
+                </p>
               </div>
             </div>
           ))}
