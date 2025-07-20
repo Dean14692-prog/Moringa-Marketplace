@@ -2,6 +2,8 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+
 
 // Utility for combining class names
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -53,9 +55,11 @@ export default function MerchCard() {
       </div>
 
       {/* View More Button */}
-      <button className="mt-10 rounded-full bg-white text-black font-semibold px-6 py-2 hover:bg-neutral-200 transition">
-        View More
-      </button>
+      <Link to = "/shop">
+        <button className="mt-10 rounded-full bg-white text-black font-semibold px-6 py-2 hover:bg-neutral-200 transition">
+          View More
+        </button>
+      </Link>
     </div>
   );
 }
