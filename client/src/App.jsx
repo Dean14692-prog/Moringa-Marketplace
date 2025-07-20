@@ -24,7 +24,7 @@ function App() {
         <Route path="/projects" element={<ProjectLayout />} />
         <Route path="/shop" element={<EcommerceLayout />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/my-projects" element={<MyProjects />} />
+        <Route path="my-projects" element={<MyProjects />} />
         <Route path="/upload" element={<UploadProject />} />
         <Route path="/dashboard" element={<StudentDashBoard />} />
         <Route path="/contact" element={<ContactUs />} />

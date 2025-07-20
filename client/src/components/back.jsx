@@ -7,7 +7,7 @@ import { TypewriterEffectSmooth } from "../components/ui/typewriter-effect";
 export function HerosSection() {
   const words = [
     {
-      text: "Launch Ideas Inspire Innovations 😉.",
+      text: "Launch Ideas Inspire Innovations.",
       className: "text-white",
     },
   ];  

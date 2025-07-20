@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+Faker = "*"
+Flask = "*"
+Flask-Migrate = "*"
+Flask-SQLAlchemy = "*"
+importlib-resources = "*"
+ipdb = "*"
+sqlalchemy-serializer = "*"
+flask-restful = "*"
+pipfile = "*"
+
+
+[requires]
+python_full_version = "*"
+
+[dev-packages]

@@ -50,7 +50,93 @@ const ProjectLayout = () => {
         bio: "UX Designer and creative coder, bringing artistic flair to tech projects using Figma and Webflow.",
       },
     },
+    {
+      id: 4,
+      image: "https://picsum.photos/300/420?random=4",
+      title: "Night Sky Photography",
+      description:
+        "A clear view of the Milky Way captured from a remote desert.",
+      category: "Photography",
+      developer: {
+        name: "James Mwangi",
+        image: "https://randomuser.me/api/portraits/men/4.jpg",
+        bio: "Back End Developer with a knack for APIs and performance optimization. Works with Django and PostgreSQL.",
+      },
+    },
+    {
+      id: 5,
+      image: "https://picsum.photos/300/450?random=5",
+      title: "Retro 8-bit Game",
+      description: "An indie platformer built with love and pixel art.",
+      category: "Games",
+      developer: {
+        name: "Linda Wanjiku",
+        image: "https://randomuser.me/api/portraits/women/5.jpg",
+        bio: "Game Developer and pixel artist blending fun and code using Phaser and Unity.",
+      },
+    },
+    {
+      id: 6,
+      image: "https://picsum.photos/300/410?random=6",
+      title: "Smart Home Dashboard",
+      description: "Control your smart devices from one sleek interface.",
+      category: "IoT",
+      developer: {
+        name: "Brian Otieno",
+        image: "https://randomuser.me/api/portraits/men/6.jpg",
+        bio: "IoT enthusiast and developer passionate about automation, MQTT, and real-time control systems.",
+      },
+    },
+    {
+      id: 7,
+      image: "https://picsum.photos/300/600?random=7",
+      title: "Fashion E-Commerce UI",
+      description: "Mobile-first interface for a fashion retail startup.",
+      category: "UI/UX",
+      developer: {
+        name: "Agnes Nyambura",
+        image: "https://randomuser.me/api/portraits/women/7.jpg",
+        bio: "UI/UX Designer focused on mobile experiences and design systems. Loves working with Figma and Tailwind.",
+      },
+    },
+    {
+      id: 8,
+      image: "https://picsum.photos/300/500?random=8",
+      title: "Finance Tracker App",
+      description: "A simple app to track expenses and savings goals.",
+      category: "Finance",
+      developer: {
+        name: "Samuel Kibe",
+        image: "https://randomuser.me/api/portraits/men/8.jpg",
+        bio: "React Native Developer passionate about building mobile-first fintech apps.",
+      },
+    },
+    {
+      id: 9,
+      image: "https://picsum.photos/300/450?random=9",
+      title: "AI Chatbot Assistant",
+      description: "Conversational bot for customer support using NLP.",
+      category: "AI",
+      developer: {
+        name: "Cynthia Wambui",
+        image: "https://randomuser.me/api/portraits/women/9.jpg",
+        bio: "Machine Learning engineer using Python and TensorFlow to build smarter assistants.",
+      },
+    },
+    {
+      id: 10,
+      image: "https://picsum.photos/300/480?random=10",
+      title: "Plant Identifier",
+      description: "App that uses image recognition to identify plants.",
+      category: "Education",
+      developer: {
+        name: "Elijah Kariuki",
+        image: "https://randomuser.me/api/portraits/men/10.jpg",
+        bio: "Full Stack Developer working with Flask, React, and machine vision for educational apps.",
+      },
+    },
   ];
+  
 
   const filteredProjects = projects
     .filter((p) => p.title.toLowerCase().includes(searchTerm.toLowerCase()))
