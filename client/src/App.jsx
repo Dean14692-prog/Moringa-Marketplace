@@ -8,6 +8,8 @@ import Profile from "./pages/Profile"
 import MyProjects from "./pages/MyProjects";
 import UploadProject from "./pages/UploadProject";
 import { StudentDashBoard } from "./pages/StudentDashBoard";
+import NotFound from "./pages/nopage";
+import ContactUs from "./pages/contact";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         {/* <MyProjects /> */}
         {/* <UploadProject /> */}
         {/* <StudentDashBoard /> */}
+        {/* <NotFound /> */}
+        {/* <ContactUs /> */}
       </div>
     </>
   );
