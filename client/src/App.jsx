@@ -5,11 +5,14 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Footer from './components/Footer';
 import Herossection from './components/Herossection';
 import StudentDashboard from './pages/StudentDashboard';
-import Projects from './pages/Projects';
-import Profile from './pages/Profile';
+// --- CHANGE STARTS HERE ---
+import MyProjects from './pages/MyProjects'; // Import the renamed component
+// If you still have a separate component for Profile, ensure it's imported:
+import Profile from './pages/Profile'; // This is for the actual student profile page
+// --- CHANGE ENDS HERE ---
 import UploadProject from './pages/UploadProject';
 import StudentSignIn from './pages/StudentSignIn';
-import StudentSignUp from './pages/signup'; // <--- NEW: Import your actual Sign Up component
+import StudentSignUp from './pages/signup';
 
 function App() {
   return (
@@ -26,8 +29,11 @@ function App() {
             <Route path="/signup" element={<StudentSignUp />} />
 
             <Route path="/dashboard" element={<StudentDashboard />}>
-              <Route path="projects" element={<Projects />} />
-              <Route path="profile" element={<Profile />} />
+              {/* --- CHANGE STARTS HERE --- */}
+              {/* Use the new MyProjects component for the dashboard projects route */}
+              <Route path="projects" element={<MyProjects />} />
+              {/* --- CHANGE ENDS HERE --- */}
+              <Route path="profile" element={<Profile />} /> {/* This should be your actual profile page */}
               <Route path="upload" element={<UploadProject />} />
               <Route
                 index

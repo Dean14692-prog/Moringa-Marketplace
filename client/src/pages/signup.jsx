@@ -175,4 +175,4 @@ const StudentSignUp = () => { // <--- The component is named StudentSignUp
   );
 };
 
-export default StudentSignUp; // <--- THIS LINE IS CRUCIAL!
+export default StudentSignUp; // <--- THIS LINE IS CRUCIAL!d6b6b9a4ec5e0758e2f47717436b45845c73a470ef2113dd2397cd95013d71fc

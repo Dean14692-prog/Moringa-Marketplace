@@ -29,12 +29,14 @@ export const sidebarLinks = [
   },
   {
     label: "Logout",
-    href: "#",
+    href: "#", // href can remain '#' as onClick handles navigation
     icon: <IconLogout size={18} />,
     onClick: () => {
-      // Replace with your actual logout logic
+      // Clear the authentication token from local storage
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      localStorage.removeItem("user"); // Assuming you might store user details too
+      // Redirect to the root route (your homepage/hero section)
+      window.location.href = "/"; // <--- THIS IS THE CHANGE FOR HERO SECTION
     },
   },
 ];

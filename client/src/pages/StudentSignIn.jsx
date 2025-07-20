@@ -28,7 +28,7 @@ const StudentSignIn = () => {
       if (response.ok) { // Check if the response status is 200-299
         console.log('Login Successful:', data);
         // Store the JWT token in localStorage
-        localStorage.setItem('jwt_token', data.access_token);
+        localStorage.setItem('token', data.access_token); // <--- CHANGED FROM 'jwt_token' to 'token'
         // Optionally, store basic student data if needed for initial dashboard load
         // (though dashboard will fetch its own /api/me anyway)
         // localStorage.setItem('student_info', JSON.stringify(data.student));
