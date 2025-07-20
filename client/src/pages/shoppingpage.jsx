@@ -13,47 +13,248 @@ const EcommerceLayout = () => {
   const pins = [
     {
       id: 1,
-      image: "https://picsum.photos/300/500?random=1",
+      image: "https://picsum.photos/115/149?random=1",
       title: "Air Jordan 4 Retro",
       description:
         "The AJ4 Retro Reimagined Bred will release on Feb 17, 2024.",
       price: 100,
-      height: 450,
+      height: 149,
     },
     {
       id: 2,
-      image: "https://picsum.photos/300/500?random=2",
+      image: "https://picsum.photos/115/239?random=2",
       title: "Nike Dunk Low Panda",
       description: "Timeless black and white Dunk Low.",
       price: 90,
-      height: 380,
+      height: 239,
     },
     {
       id: 3,
-      image: "https://picsum.photos/300/500?random=3",
+      image: "https://picsum.photos/115/121?random=3",
       title: "Yeezy Slide Pure",
       description: "Minimalist Yeezy comfort.",
       price: 80,
-      height: 420,
+      height: 121,
     },
     {
       id: 4,
-      image: "https://picsum.photos/300/500?random=4",
+      image: "https://picsum.photos/115/182?random=4",
       title: "Vintage Hoodie",
       description: "Retro graphics inspired by 90s street culture.",
       price: 85,
-      height: 500,
+      height: 182,
     },
     {
       id: 5,
-      image: "https://picsum.photos/300/350?random=5",
+      image: "https://picsum.photos/115/205?random=5",
       title: "Designer Cap",
       description: "Minimalist cap with premium materials.",
       price: 45,
-      height: 350,
+      height: 205,
+    },
+    {
+      id: 6,
+      image: "https://picsum.photos/115/176?random=6",
+      title: "Techwear Jacket",
+      description: "Waterproof and futuristic techwear aesthetic.",
+      price: 150,
+      height: 176,
+    },
+    {
+      id: 7,
+      image: "https://picsum.photos/115/212?random=7",
+      title: "Canvas Tote Bag",
+      description: "Eco-friendly canvas tote bag for everyday use.",
+      price: 35,
+      height: 212,
+    },
+    {
+      id: 8,
+      image: "https://picsum.photos/115/199?random=8",
+      title: "Luxury Watch",
+      description: "Stainless steel automatic wristwatch.",
+      price: 400,
+      height: 199,
+    },
+    {
+      id: 9,
+      image: "https://picsum.photos/115/132?random=9",
+      title: "Running Shorts",
+      description: "Lightweight shorts for optimal performance.",
+      price: 40,
+      height: 132,
+    },
+    {
+      id: 10,
+      image: "https://picsum.photos/115/246?random=10",
+      title: "Oversized T-Shirt",
+      description: "Relaxed fit t-shirt with bold print.",
+      price: 60,
+      height: 246,
+    },
+    {
+      id: 11,
+      image: "https://picsum.photos/115/102?random=11",
+      title: "Snapback Hat",
+      description: "Adjustable snapback with embroidered logo.",
+      price: 30,
+      height: 102,
+    },
+    {
+      id: 12,
+      image: "https://picsum.photos/115/138?random=12",
+      title: "Leather Wallet",
+      description: "Premium leather wallet with RFID protection.",
+      price: 70,
+      height: 138,
+    },
+    {
+      id: 13,
+      image: "https://picsum.photos/115/157?random=13",
+      title: "Sports Bra",
+      description: "Supportive and breathable fabric design.",
+      price: 55,
+      height: 157,
+    },
+    {
+      id: 14,
+      image: "https://picsum.photos/115/144?random=14",
+      title: "Retro Sunglasses",
+      description: "Classic design with UV protection.",
+      price: 50,
+      height: 144,
+    },
+    {
+      id: 15,
+      image: "https://picsum.photos/115/210?random=15",
+      title: "Corduroy Pants",
+      description: "Vintage vibe with a modern fit.",
+      price: 75,
+      height: 210,
+    },
+    {
+      id: 16,
+      image: "https://picsum.photos/115/217?random=16",
+      title: "Bomber Jacket",
+      description: "Military-inspired bomber in bold colors.",
+      price: 120,
+      height: 217,
+    },
+    {
+      id: 17,
+      image: "https://picsum.photos/115/153?random=17",
+      title: "Chunky Sneakers",
+      description: "Maximum comfort and bold silhouette.",
+      price: 110,
+      height: 153,
+    },
+    {
+      id: 18,
+      image: "https://picsum.photos/115/162?random=18",
+      title: "Mesh Cap",
+      description: "Breathable summer-ready cap.",
+      price: 25,
+      height: 162,
+    },
+    {
+      id: 19,
+      image: "https://picsum.photos/115/125?random=19",
+      title: "Fleece Joggers",
+      description: "Soft fleece fabric for cozy loungewear.",
+      price: 65,
+      height: 125,
+    },
+    {
+      id: 20,
+      image: "https://picsum.photos/115/250?random=20",
+      title: "Graphic Hoodie",
+      description: "Eye-catching designs with comfy interior.",
+      price: 95,
+      height: 250,
+    },
+    {
+      id: 21,
+      image: "https://picsum.photos/115/111?random=21",
+      title: "Ribbed Tank Top",
+      description: "Basic essential for everyday styling.",
+      price: 35,
+      height: 111,
+    },
+    {
+      id: 22,
+      image: "https://picsum.photos/115/222?random=22",
+      title: "Slim Fit Jeans",
+      description: "Stretchy denim for active days.",
+      price: 88,
+      height: 222,
+    },
+    {
+      id: 23,
+      image: "https://picsum.photos/115/136?random=23",
+      title: "Striped Scarf",
+      description: "Soft and stylish winter scarf.",
+      price: 48,
+      height: 136,
+    },
+    {
+      id: 24,
+      image: "https://picsum.photos/115/190?random=24",
+      title: "Denim Vest",
+      description: "Layered fashion done right.",
+      price: 72,
+      height: 190,
+    },
+    {
+      id: 25,
+      image: "https://picsum.photos/115/172?random=25",
+      title: "Combat Boots",
+      description: "Durable boots with a rugged sole.",
+      price: 130,
+      height: 172,
+    },
+    {
+      id: 26,
+      image: "https://picsum.photos/115/224?random=26",
+      title: "Fanny Pack",
+      description: "Hands-free convenience with street flair.",
+      price: 55,
+      height: 224,
+    },
+    {
+      id: 27,
+      image: "https://picsum.photos/115/203?random=27",
+      title: "Zebra Print Dress",
+      description: "Wild and stylish for nights out.",
+      price: 115,
+      height: 203,
+    },
+    {
+      id: 28,
+      image: "https://picsum.photos/115/167?random=28",
+      title: "Wool Beanie",
+      description: "Stay warm in minimalist style.",
+      price: 28,
+      height: 167,
+    },
+    {
+      id: 29,
+      image: "https://picsum.photos/115/135?random=29",
+      title: "Plaid Shirt",
+      description: "Timeless layering piece.",
+      price: 64,
+      height: 135,
+    },
+    {
+      id: 30,
+      image: "https://picsum.photos/115/228?random=30",
+      title: "Leather Belt",
+      description: "Smooth buckle with polished leather.",
+      price: 38,
+      height: 228,
     },
   ];
-
+  
+  
   const filteredPins = pins.filter(
     (pin) =>
       pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,7 +272,6 @@ const EcommerceLayout = () => {
       return [...prev, { ...item, quantity: 1 }];
     });
   };
-
 
   const updateQuantity = (id, amount) => {
     setCartItems((prev) =>
@@ -99,30 +299,25 @@ const EcommerceLayout = () => {
   };
 
   const MerchCard = ({ merch }) => {
-    const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 
     return (
-      <div
-        className="break-inside-avoid mb-6 group cursor-pointer"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="break-inside-avoid mb-6 group cursor-pointer">
         <div className="rounded-xl bg-zinc-900 overflow-hidden">
           <div className="relative overflow-hidden">
             {!imageLoaded && (
               <div
                 className="bg-zinc-800 animate-pulse"
-                style={{ height: merch.height * 0.7 }}
+                style={{ height: merch.height }}
               />
             )}
             <img
               src={merch.image}
               alt={merch.title}
-              className={`w-full object-cover transition-all duration-500 ${
+              className={`w-full object-cover transition-opacity duration-500 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}
-              style={{ height: isHovered ? merch.height * 0.7 : merch.height }}
+              style={{ height: merch.height }}
               onLoad={() => setImageLoaded(true)}
             />
           </div>
@@ -151,7 +346,7 @@ const EcommerceLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black relative">
+    <div className="min-h-screen bg-white relative">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-zinc-800 px-4 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
