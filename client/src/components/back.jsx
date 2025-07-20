@@ -1,8 +1,17 @@
+"use client";
 import React from "react";
 import { Link } from "react-router-dom";
 import { Vortex } from "../components/ui/vortex";
+import { TypewriterEffectSmooth } from "../components/ui/typewriter-effect";
 
 export function HerosSection() {
+  const words = [
+    {
+      text: "Launch Ideas Inspire Innovations 😉.",
+      className: "text-white",
+    },
+  ];  
+
   return (
     <div className="w-screen h-screen overflow-hidden">
       <Vortex
@@ -12,9 +21,8 @@ export function HerosSection() {
         baseHue={120}
         className="flex items-center flex-col justify-center px-2 md:px-10 py-4 w-full h-full"
       >
-        <h3 className="text-white text-xl md:text-6xl font-bold text-center">
-          Launch Ideas Inspire Innovation
-        </h3>
+        <TypewriterEffectSmooth words={words} speed={5} />
+
         <p className="text-white text-sm md:text-2xl max-w-xl mt-6 text-center">
           Welcome to a digital launchpad where Moringa students turn final
           projects into real-world impact.
