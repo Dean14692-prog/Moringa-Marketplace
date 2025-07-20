@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Sidebar, SidebarBody, SidebarLink } from "../components/ui/sidebar";
 import {
   IconArrowLeft,
@@ -20,8 +21,9 @@ export function StudentDashBoard() {
       ),
     },
     {
+      
       label: "My Projects",
-      href: "#",
+      href: "/my-projects",
       icon: (
         <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
@@ -123,16 +125,22 @@ const Dashboard = () => {
               <p className="text-sm md:text-base text-gray-700 font-medium mb-4">
                 Welcome to your dashboard. You can view messages, track project
                 statistics,
-                <br/>manage your uploaded projects, and stay updated on
-                marketplace activity.
+                <br />
+                manage your uploaded projects, and stay updated on marketplace
+                activity.
               </p>
               <div className="flex flex-wrap gap-4">
-                <button className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 transition">
-                  E-commerce
-                </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">
-                  Projects List
-                </button>
+                <Link to="/shop">
+                  <button className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 transition">
+                    E-commerce
+                  </button>
+                </Link>
+
+                <Link to="/projects">
+                  <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">
+                    Projects List
+                  </button>
+                </Link>
               </div>
             </div>
 
