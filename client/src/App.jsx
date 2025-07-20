@@ -16,23 +16,38 @@ import ContactMe from "./pages/ContactMe";
 
 function App() {
   return (
-    <>
+<<<<<<<<< Temporary merge branch 1
+    <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Landingpage />} />
-        <Route path="/signup" element={<SignupForm />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/projects" element={<ProjectLayout />} />
-        <Route path="/shop" element={<EcommerceLayout />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/my-projects" element={<MyProjects />} />
-        <Route path="/upload" element={<UploadProject />} />
-        <Route path="/dashboard" element={<StudentDashBoard />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/contact-me" element={<ContactMe />} />
-        <Route path="*" element={<NotFound />} />
+        <Route
+          path="/"
+          element={
+            <>
+              <Herossection />
+              <AnimatedTestimonialsDemo />
+              <Footer />
+            </>
+          }
+        />
+        <Route path="/home" element={<Home />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        
       </Routes>
+    </Router>
+=========
+    <>
+      <div>
+        <Navbar />
+        <Herossection />
+        <Carousel />
+        <BackgroundGradientDemo />
+        <AnimatedTestimonialsDemo />
+        <Footer />
+      </div>
     </>
+>>>>>>>>> Temporary merge branch 2
   );
 }
 

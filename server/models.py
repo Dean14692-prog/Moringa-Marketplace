@@ -22,7 +22,7 @@ class User(db.Model):
   profile_pic_url = db.Column(db.String)
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-  updated_at = db.Column(db.Datetime, onupdate=datetime.utcnow)
+  updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
   
   
 class Student(db.Model):
@@ -33,13 +33,14 @@ class Student(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     github = db.Column(db.String(255))
+    skills = db.Column(db.String(255))  # Comma-separated skills
     linkedin = db.Column(db.String(255))
     role = db.Column(db.String(50), default="student")
 
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
-    projects = db.relationship("Project", backref="student", lazy=True)
+    projects = db.relationship("Project", back_populates="student")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -94,6 +95,7 @@ class Student(db.Model):
 
   
 class Project(db.Model):
+    __tablename__ = 'projects'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(100), nullable=False)
@@ -110,7 +112,7 @@ class Project(db.Model):
 
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
 
-    student = db.relationship("Student", backref="projects")
+    student = db.relationship("Student", back_populates="projects")
     
     def __repr__(self):
         return f"<Project {self.title} by {self.student.name}>"
@@ -166,62 +168,7 @@ class Project(db.Model):
             db.session.delete(project)
             db.session.commit()
             return True
-        return False
-        
-class TeamProject(db):
-    __tablename__ = 'team_projects'
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    role = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
-    responses = db.relationship('TeamResponse', backref='team_project')
-    students = db.relationship('Student', backref='team_project')
-    
-    def serialize(self):
-        return {
-            "id": self.id,
-            "project_id": self.project_id,
-            "role": self.role,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
-        }
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-    def create(self, project_id, role):
-        self.project_id = project_id
-        self.role = role
-        db.session.add(self)
-        db.session.commit()
-    def update(self, project_id, role):
-        self.project_id = project_id
-        self.role = role
-        db.session.commit()
-
-    def get_by_id(self, team_project_id):
-        return TeamProject.query.get(team_project_id)
-    def get_by_project_id(self, project_id):
-        return TeamProject.query.filter_by(project_id=project_id).first()
-    def get_all(self):
-        return TeamProject.query.all()
-    def delete_by_id(self, team_project_id):
-        team_project = TeamProject.query.get(team_project_id)
-        if team_project:
-            db.session.delete(team_project)
-            db.session.commit()
-            return True
-        return False
-    def delete_by_project_id(self, project_id):
-        team_project = TeamProject.query.filter_by(project_id=project_id).first()
-        if team_project:
-            db.session.delete(team_project)
-            db.session.commit()
-            return True
         return False    
-    
 
 class TeamResponse(db.Model):
     __tablename__ = 'team_responses'
@@ -231,7 +178,7 @@ class TeamResponse(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     
-    team_project = db.relationship('TeamProject', backref='responses')
+    team_project = db.relationship('TeamProject', back_populates='responses')
     
     def serialize(self):
         return {
@@ -317,13 +264,18 @@ class Review(db.Model):
 
 class Merchandise(db.Model):
     __tablename__ = 'merchandise'
+
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=True)
+    name = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    image_url = db.Column(db.String(255), nullable=True)
+    image_url = db.Column(db.String(255))
+    description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    order_items = db.relationship('OrderItem', back_populates='merchandise')
+
+
     
     def serialize(self):
         return {
@@ -391,12 +343,13 @@ class TeamProject(db.Model):
     __tablename__ = 'team_projects'
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     role = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
-    responses = db.relationship('TeamResponse', backref='team_project')
-    students = db.relationship('Student', backref='team_project')
+    responses = db.relationship('TeamResponse', back_populates='team_project')
+    students = db.relationship('Student', backref='team_projects')
 
     def serialize(self):
         return {
@@ -441,15 +394,19 @@ class TeamProject(db.Model):
         return False
         
 class Order(db.Model):
+    __tablename__ = 'orders'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     total_amount = db.Column(db.Float, nullable=False)
-    payment_status = db.Column(db.String(50), default='Pending')  # Pending, Completed, Failed
+    payment_status = db.Column(db.String(50), default='Pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    
+
     user = db.relationship('User', backref='orders')
-    merchandise = db.relationship('Merchandise', secondary='order_items', backref='orders')
+    order_items = db.relationship('OrderItem', back_populates='order', cascade='all, delete-orphan')
+
+
     
     def serialize(self):    
         return {
@@ -531,14 +488,17 @@ class Order(db.Model):
         return OrderItem.query.filter_by(order_id=self.id).all()
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
+
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     merchandise_id = db.Column(db.Integer, db.ForeignKey('merchandise.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False, default=1)
+
+    quantity = db.Column(db.Integer, default=1)
     unit_price = db.Column(db.Float, nullable=False)
-    
-    order = db.relationship('Order', backref='items')
-    merchandise = db.relationship('Merchandise', backref='order_items')
+
+    order = db.relationship('Order', back_populates='order_items')
+    merchandise = db.relationship('Merchandise', back_populates='order_items')
+
     
     def serialize(self):
         return {
@@ -629,7 +589,8 @@ class Company(db.Model):
     bio = db.Column(db.Text, nullable=True)
     is_verified = db.Column(db.Boolean, default=False)
     
-    contact_requests = db.relationship('contact_requests', backref='company', lazy=True)
+   
+    contact_requests = db.relationship('ContactRequest', back_populates='company', cascade='all, delete-orphan')
     
     def serialize(self):
         return {
@@ -724,17 +685,17 @@ class Company(db.Model):
     def get_contact_requests_by_message(self, message):
         return ContactRequest.query.filter_by(company_id=self.id, message=message).all()
     
-        
-        
 class ContactRequest(db.Model):
     __tablename__ = 'contact_requests'
+
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    company = db.relationship('Company', backref='contact_requests')
+    company = db.relationship('Company', back_populates='contact_requests')
+
     
     def serialize(self):
         return {
