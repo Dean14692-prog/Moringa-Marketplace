@@ -5,7 +5,7 @@ function Home() {
     <div
       className="min-h-screen bg-cover bg-center flex"
       style={{
-        backgroundImage: "url('/background.gif')", // ✅ use public path
+        backgroundImage: "url('/background.gif')",
         backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
         backgroundPosition: "center",
