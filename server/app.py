@@ -3,7 +3,7 @@ from flask_restful import Api, Resource
 
 from models import db, Student, Project, User, Merchandise, Review, Company, Order, OrderItem, ContactRequest, TeamProject
 import os
-import json # Added import for json
+import json 
 from flask_cors import CORS
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError 
@@ -29,7 +29,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///mor
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your_fallback_jwt_secret_key") # Added fallback for safety
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your_fallback_jwt_secret_key") 
 
 
 UPLOAD_FOLDER = os.path.join(basedir, "uploads") 
@@ -50,7 +50,7 @@ api = Api(api_bp)
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def admin_required():
@@ -209,10 +209,6 @@ class AuthLogin(Resource):
             return {"access_token": access_token, "refresh_token": refresh_token, "role": user_role}, 200
         return {"msg": "Invalid credentials"}, 401
 
-class Student(Resource):
-    @jwt_required()
-    def get(self):
-        students = Student
 
 class StudentProfile(Resource):
     @jwt_required()
@@ -765,6 +761,7 @@ class ProjectReviews(Resource):
 # --- Registering Flask-RESTful Resources ---
 api.add_resource(AuthRegister, '/register')
 api.add_resource(AuthLogin, '/login')
+api.add_resource(Students, '/students') 
 api.add_resource(StudentProfile, '/me')
 api.add_resource(StudentProjects, '/me/projects')
 api.add_resource(ProjectUpload, '/projects/upload')

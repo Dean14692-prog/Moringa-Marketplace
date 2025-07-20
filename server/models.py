@@ -130,7 +130,7 @@ class Student(db.Model):
             "github": self.github,
             "linkedin": self.linkedin,
             "role": self.role,
-            "skills": self.skills, # Include skills in serialization
+            "skills": self.skills, 
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -216,7 +216,7 @@ class Project(db.Model):
             "student_id": self.student_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "team_members": [tm.serialize() for tm in self.team_members] # Include team members
+            "team_members": [tm.serialize() for tm in self.team_members]
         }
 
     def save(self):
@@ -312,7 +312,7 @@ class TeamProject(db.Model):
     student_member = db.relationship("Student", back_populates="projects_as_member")
     project_team = db.relationship("Project", back_populates="team_members")
 
-   
+  
     __table_args__ = (UniqueConstraint('student_id', 'project_id', name='_student_project_uc'),)
 
     def __repr__(self):

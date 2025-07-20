@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from random import choice, randint, uniform
 from faker import Faker
 from app import app # Import your Flask app instance
-from models import db, User, Student, Project, TeamProject, TeamResponse, Review, Merchandise, Order, OrderItem, Company, ContactRequest # Import all your models
+from models import db, User, Student, Project, TeamProject, TeamResponse, Review, Merchandise, Order, OrderItem, Company, ContactRequest 
 
-# Initialize Faker
+
 fake = Faker()
 
 def seed_database():
@@ -13,15 +13,15 @@ def seed_database():
     This function is designed to be called within an active Flask application context.
     """
     print("Dropping all tables...")
-    db.drop_all() # Drop existing tables
+    db.drop_all() 
     print("Creating all tables...")
-    db.create_all() # Create new tables based on models
+    db.create_all() 
 
     print("Seeding Users...")
     users = []
     for i in range(10):
         username = fake.user_name()
-        # Ensure unique username
+        
         while User.query.filter_by(username=username).first():
             username = fake.user_name()
 
@@ -30,7 +30,7 @@ def seed_database():
             first_name=fake.first_name(),
             last_name=fake.last_name(),
             email=fake.unique.email(),
-            password="password123", # Use a simple password for seeding
+            password="password123", 
             role=choice(["admin", "user", "moderator"]),
             profile_pic_url=fake.image_url() if randint(0,1) else None
         )
@@ -39,14 +39,14 @@ def seed_database():
 
     print("Seeding Students...")
     students = []
-    for i in range(15): # Create more students to have more variety for projects
+    for i in range(15): 
         student = Student.create(
             name=fake.name(),
             email=fake.unique.email(),
-            password="password123", # Use a simple password for seeding
+            password="password123", 
             github=fake.url() if randint(0,1) else None,
             linkedin=fake.url() if randint(0,1) else None,
-            skills=fake.sentence(nb_words=5) # Add some skills
+            skills=fake.sentence(nb_words=5) 
         )
         students.append(student)
     print(f"Created {len(students)} students.")
@@ -55,7 +55,7 @@ def seed_database():
     projects = []
     categories = ["Web Development", "Mobile App", "Data Science", "Machine Learning", "Game Development", "UI/UX Design", "Cybersecurity", "DevOps"]
     statuses = ["Pending", "Approved", "Rejected"]
-    for i in range(25): # Create more projects
+    for i in range(25): 
         project = Project.create(
             title=fake.catch_phrase(),
             category=choice(categories),
@@ -66,7 +66,7 @@ def seed_database():
             price=round(uniform(10.0, 500.0), 2) if fake.boolean(chance_of_getting_true=30) else 0.0,
             file_url=fake.file_extension() if randint(0,1) else None,
             student_id=choice(students).id,
-            status=choice(statuses) if i < 15 else "Approved" # Ensure at least 15 are approved
+            status=choice(statuses) if i < 15 else "Approved" 
         )
         projects.append(project)
     print(f"Created {len(projects)} projects.")
@@ -93,7 +93,7 @@ def seed_database():
             logo_image_url=fake.image_url() if randint(0,1) else None,
             bio=fake.text(max_nb_chars=200)
         )
-        if i % 3 == 0: # Verify some companies
+        if i % 3 == 0: 
             company.verify()
         companies.append(company)
     print(f"Created {len(companies)} companies.")
@@ -102,20 +102,20 @@ def seed_database():
     orders = []
     for i in range(15):
         user = choice(users)
-        order = Order.create(user_id=user.id) # Initial total_amount is 0.0, will be updated by add_item
+        order = Order.create(user_id=user.id) 
         orders.append(order)
 
-        # Add 1 to 5 items per order
+        
         num_items = randint(1, 5)
         order_total = 0.0
         for _ in range(num_items):
             merchandise = choice(merchandise_items)
             quantity = randint(1, 3)
-            unit_price = merchandise.price # Use the merchandise's price
+            unit_price = merchandise.price 
             order.add_item(merchandise.id, quantity, unit_price)
             order_total += quantity * unit_price
-        order.total_amount = order_total # Ensure total amount is correct
-        order.save() # Save the order after adding items
+        order.total_amount = order_total 
+        order.save() 
     print(f"Created {len(orders)} orders with items.")
 
     print("Seeding Reviews...")
@@ -137,11 +137,11 @@ def seed_database():
     team_roles = ["Lead Developer", "Backend Engineer", "Frontend Developer", "UI/UX Designer", "Project Manager", "Data Analyst"]
     for i in range(10):
         project = choice(projects)
-        student = choice(students) # Assign a student as the manager/creator of the team project
+        student = choice(students) 
         team_project = TeamProject.create(
             project_id=project.id,
             student_id=student.id,
-            role=choice(team_roles) # Role for the team project itself
+            role=choice(team_roles) 
         )
         team_projects.append(team_project)
     print(f"Created {len(team_projects)} team projects.")
@@ -150,7 +150,7 @@ def seed_database():
     team_responses = []
     for i in range(20):
         team_project = choice(team_projects)
-        # Corrected: Pass student_id and project_id from team_project instance
+        
         team_response = TeamResponse.create(
             team_project_student_id=team_project.student_id,
             team_project_project_id=team_project.project_id,
@@ -174,7 +174,5 @@ def seed_database():
     print("Database seeding complete!")
 
 if __name__ == "__main__":
-    # It's crucial that db.init_app(app) has already been called when app is imported,
-    # which it is in your app.py. So, we just need the app context here.
     with app.app_context():
         seed_database()

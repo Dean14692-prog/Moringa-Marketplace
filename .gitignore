@@ -1,0 +1,6 @@
+*.db
+*.sqlite
+*.sqlite3
+*.journal
+moringa_marketplace.db
+moringa_marketplace.db-journal
