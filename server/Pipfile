@@ -5,17 +5,23 @@ name = "pypi"
 
 [packages]
 Faker = "*"
-Flask = "*"
 Flask-Migrate = "*"
 Flask-SQLAlchemy = "*"
 importlib-resources = "*"
 ipdb = "*"
 sqlalchemy-serializer = "*"
+decouple = "*"
 flask-restful = "*"
-pipfile = "*"
-
+flask-cors = "*"
+dotenv = "*"
+werkzeug = "*"
+flask = "*"
+migrate = "*"
+flask-jwt-extended = "*"
 
 [requires]
-python_full_version = "*"
+python_version = "*"
 
 [dev-packages]
+python-dotenv = "*"
+black = "*"
