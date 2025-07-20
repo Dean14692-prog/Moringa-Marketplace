@@ -8,12 +8,13 @@ import Profile from "./pages/Profile"
 import MyProjects from "./pages/MyProjects";
 import UploadProject from "./pages/UploadProject";
 import { StudentDashBoard } from "./pages/StudentDashBoard";
+import ContactUs from "./pages/ContactUs";
 
 function App() {
   return (
     <>
       <div>
-        <Landingpage />
+        {/* <Landingpage /> */}
         {/* <SignupForm /> */}
         {/* <LoginForm /> */}
         {/* <ProjectLayout /> */}
@@ -22,6 +23,7 @@ function App() {
         {/* <MyProjects /> */}
         {/* <UploadProject /> */}
         {/* <StudentDashBoard /> */}
+      
       </div>
     </>
   );
