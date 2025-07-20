@@ -15,7 +15,7 @@ export default function LoginForm() {
     <div className="min-h-screen w-full flex items-center justify-center bg-black px-4 overflow-hidden">
       <div className="w-full max-w-md bg-black p-4 md:rounded-2xl md:p-8 border-none">
         <h2 className="text-xl font-bold text-white text-center">
-          Welcome Back, Aaron
+          Welcome Back
         </h2>
         <form className="my-8" onSubmit={handleSubmit}>
           <Link
