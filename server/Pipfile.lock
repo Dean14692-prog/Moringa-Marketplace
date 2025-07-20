@@ -80,12 +80,21 @@
         },
         "faker": {
             "hashes": [
+<<<<<<< HEAD
+                "sha256:8e281bbaea30e5658895b8bea21cc50d27aaf3a43db3f2694409ca5701c56b0a",
+                "sha256:b70ed1af57bfe988cbcd0afd95f4768c51eaf4e1ce8a30962e127ac5c139c93f"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==37.4.2"
+=======
                 "sha256:0a79ebe8f0ea803f7bd288d51e2d445b86035a2480e048daee1bffbd4d69b32b",
                 "sha256:94216ce3d8affdc0a8fd0ea8219c184c346a1dcf07b03f193e52f3116186621e"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.8'",
             "version": "==35.2.2"
+>>>>>>> 047e66a5da95ad7700d621147d4986f29febb80c
         },
         "flask": {
             "hashes": [

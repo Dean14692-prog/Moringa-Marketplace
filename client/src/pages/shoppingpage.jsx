@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Search, Home, User, ShoppingCart, Plus, Minus, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -472,3 +473,4 @@ const EcommerceLayout = () => {
 };
 
 export default EcommerceLayout;
+
