@@ -37,7 +37,7 @@ export default function MyProjects() {
       style={{ backgroundImage: `url(${bgImage})` }}
     >
       <Link
-        to="/"
+        to="/dashboard"
         className="absolute top-4 left-4 flex items-center gap-2 text-sm text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors duration-200"
       >
         <ArrowLeft className="h-4 w-4" />
