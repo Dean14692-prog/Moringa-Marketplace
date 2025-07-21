@@ -2,177 +2,211 @@ import os
 from datetime import datetime, timedelta
 from random import choice, randint, uniform
 from faker import Faker
-from app import app # Import your Flask app instance
-from models import db, User, Student, Project, TeamProject, TeamResponse, Review, Merchandise, Order, OrderItem, Company, ContactRequest 
-
+from app import app ,db
+from models import User, Role, Project, Review, Order, OrderItem, Merchandise, UserProject 
+from flask_bcrypt import Bcrypt
 
 fake = Faker()
+bcrypt = Bcrypt(app)
+
+def clear_data():
+    """Clears existing data from tables in dependency order, based ONLY on the provided diagram."""
+    with app.app_context():
+        print("Clearing existing data...")
+        # Clear tables 
+        db.session.query(Review).delete()
+        db.session.query(OrderItem).delete()
+        db.session.query(Order).delete()
+        db.session.query(UserProject).delete()
+        db.session.query(Merchandise).delete()
+        db.session.query(Project).delete()
+        db.session.query(User).delete()
+        db.session.query(Role).delete()
+
+        db.session.commit()
+        print("Existing data cleared.")
 
 def seed_database():
-    """Seeds the database with sample data.
-    This function is designed to be called within an active Flask application context.
-    """
-    print("Dropping all tables...")
-    db.drop_all() 
-    print("Creating all tables...")
-    db.create_all() 
+    """Seeds the database with sample data based ONLY on the schema in 'Screenshot from 2025-07-21 15-51-56.jpg'."""
+    with app.app_context():
+        print("Dropping all tables...")
+        db.drop_all()
+        print("Creating all tables...")
+        db.create_all()
+        print("Starting database seeding...")
 
-    print("Seeding Users...")
-    users = []
-    for i in range(10):
-        username = fake.user_name()
+        print("Seeding Roles...")
+        admin_role = Role(name='admin')
+        student_role = Role(name='student')
+        db.session.add_all([admin_role, student_role])
+        db.session.commit()
+        print("Seeded Roles.")
+
+        # --- Users (Table: users) ---
+        print("Seeding Users...")
+        users = []
+        admin_role_obj = Role.query.filter_by(name='admin').first()
+        student_role_obj = Role.query.filter_by(name='student').first()
+
+        admin_user = User.create(
+            first_name="Admin",
+            last_name="System",
+            email="admin@example.com",
+            password="adminpassword", 
+            username="adminuser",
+            role_id=admin_role_obj.id,
+            profile_pic="https://example.com/admin_profile.jpg",
+            github_link=None,
+            linkedin_link=None, 
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        users.append(admin_user)
+
+        student_user = User.create(
+            first_name="Student",
+            last_name="Learner",
+            email="student@example.com",
+            password="studentpassword",
+            username="studentuser",
+            role_id=student_role_obj.id,
+            profile_pic="https://example.com/student_profile.jpg",
+            github_link="https://github.com/student_learner",
+            linkedin_link="https://linkedin.com/in/student_learner",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        users.append(student_user)
+        for _ in range(13):
+            chosen_role = choice([admin_role_obj, student_role_obj]) 
+            
+            while True:
+                new_email = fake.unique.email()
+                if new_email not in ["admin@example.com", "student@example.com"]:
+                    break
+
+            user = User.create(
+                first_name=fake.first_name(),
+                last_name=fake.last_name(),
+                email=new_email,
+                password="password123",
+                username=fake.unique.user_name(),
+                role_id=chosen_role.id,
+                profile_pic=fake.image_url() if randint(0, 1) else None,
+                github_link=fake.url() if chosen_role.name == 'student' and randint(0, 1) else None,
+                linkedin_link=fake.url() if chosen_role.name == 'student' and randint(0, 1) else None,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            users.append(user)
+        print(f"Created {len(users)} Users.")
+
+        # --- Projects (Table: projects) ---
+        print("Seeding Projects...")
+        projects = []
+        categories = ["Web Development", "Mobile App", "Data Science", "Machine Learning", "Game Development", "UI/UX Design"]
         
-        while User.query.filter_by(username=username).first():
-            username = fake.user_name()
+      
 
-        user = User.create(
-            username=username,
-            first_name=fake.first_name(),
-            last_name=fake.last_name(),
-            email=fake.unique.email(),
-            password="password123", 
-            role=choice(["admin", "user", "moderator"]),
-            profile_pic_url=fake.image_url() if randint(0,1) else None
-        )
-        users.append(user)
-    print(f"Created {len(users)} users.")
+        for i in range(25):
+            project = Project.create(
+                title=fake.catch_phrase(),
+                description=fake.paragraph(nb_sentences=5),
+                category=choice(categories),
+                github_link=fake.url(),
+                live_preview_link=fake.url() if randint(0,1) else None,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            projects.append(project)
+        print(f"Created {len(projects)} Projects.")
 
-    print("Seeding Students...")
-    students = []
-    for i in range(15): 
-        student = Student.create(
-            name=fake.name(),
-            email=fake.unique.email(),
-            password="password123", 
-            github=fake.url() if randint(0,1) else None,
-            linkedin=fake.url() if randint(0,1) else None,
-            skills=fake.sentence(nb_words=5) 
-        )
-        students.append(student)
-    print(f"Created {len(students)} students.")
+        print("Seeding User_Projects (Many-to-Many between Users and Projects)...")
+        user_projects = []
+        for _ in range(10): 
+            user = choice(users)
+            project = choice(projects)
+            
+            # Avoid duplicate user-project entries
+            existing_entry = UserProject.query.filter_by(user_id=user.id, project_id=project.id).first()
+            if not existing_entry:
+                user_project = UserProject.create(
+                    user_id=user.id,
+                    project_id=project.id,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                user_projects.append(user_project)
+            else:
+                print(f"Skipping duplicate UserProject for User {user.id} and Project {project.id}")
+        db.session.commit()
+        print(f"Created {len(user_projects)} User_Projects entries.")
 
-    print("Seeding Projects...")
-    projects = []
-    categories = ["Web Development", "Mobile App", "Data Science", "Machine Learning", "Game Development", "UI/UX Design", "Cybersecurity", "DevOps"]
-    statuses = ["Pending", "Approved", "Rejected"]
-    for i in range(25): 
-        project = Project.create(
-            title=fake.catch_phrase(),
-            category=choice(categories),
-            description=fake.paragraph(nb_sentences=5),
-            github_link=fake.url(),
-            demo_link=fake.url() if randint(0,1) else None,
-            for_sale=fake.boolean(chance_of_getting_true=30),
-            price=round(uniform(10.0, 500.0), 2) if fake.boolean(chance_of_getting_true=30) else 0.0,
-            file_url=fake.file_extension() if randint(0,1) else None,
-            student_id=choice(students).id,
-            status=choice(statuses) if i < 15 else "Approved" 
-        )
-        projects.append(project)
-    print(f"Created {len(projects)} projects.")
+        print("Seeding Reviews...")
+        reviews = []
+        for _ in range(30):
+            review = Review.create(
+                user_id=choice(users).id,
+                project_id=choice(projects).id, 
+                comment=fake.sentence(),
+                rating=randint(1, 5),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            reviews.append(review)
+        print(f"Created {len(reviews)} Reviews.")
 
-    print("Seeding Merchandise...")
-    merchandise_items = []
-    for i in range(12):
-        merchandise = Merchandise.create(
-            name=fake.word().capitalize() + " " + choice(["T-Shirt", "Mug", "Sticker", "Hoodie", "Notebook"]),
-            description=fake.sentence(),
-            price=round(uniform(5.0, 50.0), 2),
-            image_url=fake.image_url() if randint(0,1) else None
-        )
-        merchandise_items.append(merchandise)
-    print(f"Created {len(merchandise_items)} merchandise items.")
+        print("Seeding Merchandise...")
+        merchandise_items = []
+        merchandise_categories = ["Apparel", "Homeware", "Electronics", "Books", "Accessories"] 
+        for _ in range(12):
+            merchandise = Merchandise.create(
+                name=fake.word().capitalize() + " " + choice(["T-Shirt", "Mug", "Sticker", "Hoodie", "Notebook"]),
+                description=fake.sentence(),
+                price=round(uniform(5.0, 50.0), 2),
+                image_url=fake.image_url(),
+                category=choice(merchandise_categories),
+                stock_quantity=randint(10, 200),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            merchandise_items.append(merchandise)
+        print(f"Created {len(merchandise_items)} Merchandise items.")
 
-    print("Seeding Companies...")
-    companies = []
-    for i in range(10):
-        company = Company.create(
-            name=fake.company(),
-            email=fake.unique.company_email(),
-            description=fake.paragraph(nb_sentences=3),
-            logo_image_url=fake.image_url() if randint(0,1) else None,
-            bio=fake.text(max_nb_chars=200)
-        )
-        if i % 3 == 0: 
-            company.verify()
-        companies.append(company)
-    print(f"Created {len(companies)} companies.")
+        print("Seeding Orders and OrderItems...")
+        orders = []
+        order_statuses = ["pending", "completed", "cancelled"] 
+        for _ in range(15):
+            buyer = choice(users)
+            order = Order.create(
+                user_id=buyer.id, 
+                status=choice(order_statuses),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            orders.append(order)
+            db.session.add(order) 
+            db.session.flush() 
 
-    print("Seeding Orders and OrderItems...")
-    orders = []
-    for i in range(15):
-        user = choice(users)
-        order = Order.create(user_id=user.id) 
-        orders.append(order)
+            num_items = randint(1, 5)
+            order_total = 0.0
+            for _ in range(num_items):
+                merchandise = choice(merchandise_items)
+                quantity = randint(1, 3)
+                order_item = OrderItem.create(
+                    order_id=order.id,
+                    merchandise_id=merchandise.id, 
+                    quantity=quantity
+                )
+                order_total += quantity * merchandise.price
+           
+            db.session.commit()
 
-        
-        num_items = randint(1, 5)
-        order_total = 0.0
-        for _ in range(num_items):
-            merchandise = choice(merchandise_items)
-            quantity = randint(1, 3)
-            unit_price = merchandise.price 
-            order.add_item(merchandise.id, quantity, unit_price)
-            order_total += quantity * unit_price
-        order.total_amount = order_total 
-        order.save() 
-    print(f"Created {len(orders)} orders with items.")
+        print(f"Created {len(orders)} Orders with items.")
 
-    print("Seeding Reviews...")
-    reviews = []
-    for i in range(20):
-        project = choice(projects)
-        user = choice(users)
-        review = Review.create(
-            project_id=project.id,
-            reviewer_id=user.id,
-            rating=randint(1, 5),
-            comment=fake.sentence() if randint(0,1) else None
-        )
-        reviews.append(review)
-    print(f"Created {len(reviews)} reviews.")
-
-    print("Seeding TeamProjects...")
-    team_projects = []
-    team_roles = ["Lead Developer", "Backend Engineer", "Frontend Developer", "UI/UX Designer", "Project Manager", "Data Analyst"]
-    for i in range(10):
-        project = choice(projects)
-        student = choice(students) 
-        team_project = TeamProject.create(
-            project_id=project.id,
-            student_id=student.id,
-            role=choice(team_roles) 
-        )
-        team_projects.append(team_project)
-    print(f"Created {len(team_projects)} team projects.")
-
-    print("Seeding TeamResponses...")
-    team_responses = []
-    for i in range(20):
-        team_project = choice(team_projects)
-        
-        team_response = TeamResponse.create(
-            team_project_student_id=team_project.student_id,
-            team_project_project_id=team_project.project_id,
-            response_text=fake.paragraph(nb_sentences=2)
-        )
-        team_responses.append(team_response)
-    print(f"Created {len(team_responses)} team responses.")
-
-    print("Seeding ContactRequests...")
-    contact_requests = []
-    for i in range(15):
-        company = choice(companies)
-        contact_request = ContactRequest.create(
-            company_id=company.id,
-            email=fake.email(),
-            message=fake.text(max_nb_chars=150)
-        )
-        contact_requests.append(contact_request)
-    print(f"Created {len(contact_requests)} contact requests.")
-
-    print("Database seeding complete!")
+        print("Database seeding complete!")
 
 if __name__ == "__main__":
     with app.app_context():
+        clear_data()
         seed_database()
