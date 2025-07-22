@@ -1,168 +1,748 @@
 
-"use client";
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import {
-  Search,
-  ShoppingCart,
-  Plus,
-  Minus,
-  X,
-  CheckCircle,
-  ArrowLeft,
-  Filter,
-  CreditCard,
-  DollarSign,
-  Smartphone,
-  ChevronRight,
-  ChevronLeft,
-  Home,
-  Settings,
-  Star,
-  Package,
-  ListFilter,
-  SlidersHorizontal,
-  FolderKanban,
-  ChevronDown,
-} from "lucide-react";
-import { Link } from "react-router-dom"; // Import Link from react-router-dom
+// import { useState } from "react";
+// import { Search, Home, User, ShoppingCart, Plus, Minus, X } from "lucide-react";
+// import { Link, useNavigate } from "react-router-dom";
+
+// const EcommerceLayout = () => {
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [cartItems, setCartItems] = useState([]);
+//   const [isCartOpen, setIsCartOpen] = useState(false);
+//   const navigate = useNavigate();
+
+//   const isAuthenticated = false;
+
+//   const pins = [
+//     {
+//       id: 1,
+//       image: "https://picsum.photos/115/149?random=1",
+//       title: "Air Jordan 4 Retro",
+//       description:
+//         "The AJ4 Retro Reimagined Bred will release on Feb 17, 2024.",
+//       price: 100,
+//       height: 149,
+//     },
+//     {
+//       id: 2,
+//       image: "https://picsum.photos/115/239?random=2",
+//       title: "Nike Dunk Low Panda",
+//       description: "Timeless black and white Dunk Low.",
+//       price: 90,
+//       height: 239,
+//     },
+//     {
+//       id: 3,
+//       image: "https://picsum.photos/115/121?random=3",
+//       title: "Yeezy Slide Pure",
+//       description: "Minimalist Yeezy comfort.",
+//       price: 80,
+//       height: 121,
+//     },
+//     {
+//       id: 4,
+//       image: "https://picsum.photos/115/182?random=4",
+//       title: "Vintage Hoodie",
+//       description: "Retro graphics inspired by 90s street culture.",
+//       price: 85,
+//       height: 182,
+//     },
+//     {
+//       id: 5,
+//       image: "https://picsum.photos/115/205?random=5",
+//       title: "Designer Cap",
+//       description: "Minimalist cap with premium materials.",
+//       price: 45,
+//       height: 205,
+//     },
+//     {
+//       id: 6,
+//       image: "https://picsum.photos/115/176?random=6",
+//       title: "Techwear Jacket",
+//       description: "Waterproof and futuristic techwear aesthetic.",
+//       price: 150,
+//       height: 176,
+//     },
+//     {
+//       id: 7,
+//       image: "https://picsum.photos/115/212?random=7",
+//       title: "Canvas Tote Bag",
+//       description: "Eco-friendly canvas tote bag for everyday use.",
+//       price: 35,
+//       height: 212,
+//     },
+//     {
+//       id: 8,
+//       image: "https://picsum.photos/115/199?random=8",
+//       title: "Luxury Watch",
+//       description: "Stainless steel automatic wristwatch.",
+//       price: 400,
+//       height: 199,
+//     },
+//     {
+//       id: 9,
+//       image: "https://picsum.photos/115/132?random=9",
+//       title: "Running Shorts",
+//       description: "Lightweight shorts for optimal performance.",
+//       price: 40,
+//       height: 132,
+//     },
+//     {
+//       id: 10,
+//       image: "https://picsum.photos/115/246?random=10",
+//       title: "Oversized T-Shirt",
+//       description: "Relaxed fit t-shirt with bold print.",
+//       price: 60,
+//       height: 246,
+//     },
+//     {
+//       id: 11,
+//       image: "https://picsum.photos/115/102?random=11",
+//       title: "Snapback Hat",
+//       description: "Adjustable snapback with embroidered logo.",
+//       price: 30,
+//       height: 102,
+//     },
+//     {
+//       id: 12,
+//       image: "https://picsum.photos/115/138?random=12",
+//       title: "Leather Wallet",
+//       description: "Premium leather wallet with RFID protection.",
+//       price: 70,
+//       height: 138,
+//     },
+//     {
+//       id: 13,
+//       image: "https://picsum.photos/115/157?random=13",
+//       title: "Sports Bra",
+//       description: "Supportive and breathable fabric design.",
+//       price: 55,
+//       height: 157,
+//     },
+//     {
+//       id: 14,
+//       image: "https://picsum.photos/115/144?random=14",
+//       title: "Retro Sunglasses",
+//       description: "Classic design with UV protection.",
+//       price: 50,
+//       height: 144,
+//     },
+//     {
+//       id: 15,
+//       image: "https://picsum.photos/115/210?random=15",
+//       title: "Corduroy Pants",
+//       description: "Vintage vibe with a modern fit.",
+//       price: 75,
+//       height: 210,
+//     },
+//     {
+//       id: 16,
+//       image: "https://picsum.photos/115/217?random=16",
+//       title: "Bomber Jacket",
+//       description: "Military-inspired bomber in bold colors.",
+//       price: 120,
+//       height: 217,
+//     },
+//     {
+//       id: 17,
+//       image: "https://picsum.photos/115/153?random=17",
+//       title: "Chunky Sneakers",
+//       description: "Maximum comfort and bold silhouette.",
+//       price: 110,
+//       height: 153,
+//     },
+//     {
+//       id: 18,
+//       image: "https://picsum.photos/115/162?random=18",
+//       title: "Mesh Cap",
+//       description: "Breathable summer-ready cap.",
+//       price: 25,
+//       height: 162,
+//     },
+//     {
+//       id: 19,
+//       image: "https://picsum.photos/115/125?random=19",
+//       title: "Fleece Joggers",
+//       description: "Soft fleece fabric for cozy loungewear.",
+//       price: 65,
+//       height: 125,
+//     },
+//     {
+//       id: 20,
+//       image: "https://picsum.photos/115/250?random=20",
+//       title: "Graphic Hoodie",
+//       description: "Eye-catching designs with comfy interior.",
+//       price: 95,
+//       height: 250,
+//     },
+//     {
+//       id: 21,
+//       image: "https://picsum.photos/115/111?random=21",
+//       title: "Ribbed Tank Top",
+//       description: "Basic essential for everyday styling.",
+//       price: 35,
+//       height: 111,
+//     },
+//     {
+//       id: 22,
+//       image: "https://picsum.photos/115/222?random=22",
+//       title: "Slim Fit Jeans",
+//       description: "Stretchy denim for active days.",
+//       price: 88,
+//       height: 222,
+//     },
+//     {
+//       id: 23,
+//       image: "https://picsum.photos/115/136?random=23",
+//       title: "Striped Scarf",
+//       description: "Soft and stylish winter scarf.",
+//       price: 48,
+//       height: 136,
+//     },
+//     {
+//       id: 24,
+//       image: "https://picsum.photos/115/190?random=24",
+//       title: "Denim Vest",
+//       description: "Layered fashion done right.",
+//       price: 72,
+//       height: 190,
+//     },
+//     {
+//       id: 25,
+//       image: "https://picsum.photos/115/172?random=25",
+//       title: "Combat Boots",
+//       description: "Durable boots with a rugged sole.",
+//       price: 130,
+//       height: 172,
+//     },
+//     {
+//       id: 26,
+//       image: "https://picsum.photos/115/224?random=26",
+//       title: "Fanny Pack",
+//       description: "Hands-free convenience with street flair.",
+//       price: 55,
+//       height: 224,
+//     },
+//     {
+//       id: 27,
+//       image: "https://picsum.photos/115/203?random=27",
+//       title: "Zebra Print Dress",
+//       description: "Wild and stylish for nights out.",
+//       price: 115,
+//       height: 203,
+//     },
+//     {
+//       id: 28,
+//       image: "https://picsum.photos/115/167?random=28",
+//       title: "Wool Beanie",
+//       description: "Stay warm in minimalist style.",
+//       price: 28,
+//       height: 167,
+//     },
+//     {
+//       id: 29,
+//       image: "https://picsum.photos/115/135?random=29",
+//       title: "Plaid Shirt",
+//       description: "Timeless layering piece.",
+//       price: 64,
+//       height: 135,
+//     },
+//     {
+//       id: 30,
+//       image: "https://picsum.photos/115/228?random=30",
+//       title: "Leather Belt",
+//       description: "Smooth buckle with polished leather.",
+//       price: 38,
+//       height: 228,
+//     },
+//   ];
+  
+  
+//   const filteredPins = pins.filter(
+//     (pin) =>
+//       pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//       pin.description.toLowerCase().includes(searchTerm.toLowerCase())
+//   );
+
+//   const addToCart = (item) => {
+//     setCartItems((prev) => {
+//       const existing = prev.find((i) => i.id === item.id);
+//       if (existing) {
+//         return prev.map((i) =>
+//           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+//         );
+//       }
+//       return [...prev, { ...item, quantity: 1 }];
+//     });
+//   };
+
+//   const updateQuantity = (id, amount) => {
+//     setCartItems((prev) =>
+//       prev
+//         .map((item) =>
+//           item.id === id ? { ...item, quantity: item.quantity + amount } : item
+//         )
+//         .filter((item) => item.quantity > 0)
+//     );
+//   };
+
+//   const totalPrice = cartItems.reduce(
+//     (acc, item) => acc + item.price * item.quantity,
+//     0
+//   );
+
+//   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+//   const handleCheckout = () => {
+//     if (isAuthenticated) {
+//       navigate("/checkout");
+//     } else {
+//       navigate("/signup");
+//     }
+//   };
+
+//   const MerchCard = ({ merch }) => {
+//     const [imageLoaded, setImageLoaded] = useState(false);
+
+//     return (
+//       <div className="break-inside-avoid mb-6 group cursor-pointer">
+//         <div className="rounded-xl bg-zinc-900 overflow-hidden">
+//           <div className="relative overflow-hidden">
+//             {!imageLoaded && (
+//               <div
+//                 className="bg-zinc-800 animate-pulse"
+//                 style={{ height: merch.height }}
+//               />
+//             )}
+//             <img
+//               src={merch.image}
+//               alt={merch.title}
+//               className={`w-full object-cover transition-opacity duration-500 ${
+//                 imageLoaded ? "opacity-100" : "opacity-0"
+//               }`}
+//               style={{ height: merch.height }}
+//               onLoad={() => setImageLoaded(true)}
+//             />
+//           </div>
+//           <div className="p-4">
+//             <h3 className="text-white font-semibold text-lg">{merch.title}</h3>
+//             <p className="text-sm text-zinc-400 line-clamp-2">
+//               {merch.description}
+//             </p>
+//             <div className="pt-4 border-t border-zinc-700 mt-4">
+//               <div className="mt-4">
+//                 <button
+//                   onClick={() => addToCart(merch)}
+//                   className="cursor-pointer rounded-full pl-4 pr-1 py-1 text-white flex items-center space-x-1 bg-black text-xs font-bold dark:bg-zinc-800 hover:bg-zinc-700 transition"
+//                 >
+//                   <span>Buy now</span>
+//                   <span className="bg-zinc-700 rounded-full text-[0.6rem] px-2 py-0 text-white">
+//                     KSh.{merch.price}
+//                   </span>
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-white relative">
+//       {/* Header */}
+//       <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-zinc-800 px-4 py-3">
+//         <div className="flex items-center justify-between max-w-7xl mx-auto">
+//           <div className="flex items-center gap-6">
+//             <nav className="hidden md:flex items-center gap-4">
+//               <Link to="/">
+//                 <button className="p-3 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-colors">
+//                   <Home size={20} />
+//                 </button>
+//               </Link>
+//             </nav>
+//           </div>
+//           <div className="flex-1 max-w-2xl mx-8">
+//             <div className="relative">
+//               <Search
+//                 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400"
+//                 size={20}
+//               />
+//               <input
+//                 type="text"
+//                 placeholder="Search merchandise..."
+//                 value={searchTerm}
+//                 onChange={(e) => setSearchTerm(e.target.value)}
+//                 className="w-full pl-12 pr-4 py-3 bg-zinc-900 hover:bg-zinc-800 focus:bg-zinc-800 focus:ring-2 focus:ring-purple-500 rounded-full border-none outline-none text-white placeholder-zinc-400"
+//               />
+//             </div>
+//           </div>
+//           <div className="flex items-center gap-3">
+//             <button
+//               onClick={() => setIsCartOpen(!isCartOpen)}
+//               className="relative p-3 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-colors"
+//             >
+//               <ShoppingCart size={20} />
+//               {totalQuantity > 0 && (
+//                 <span className="absolute -top-1 -right-1 bg-red-600 text-xs text-white rounded-full px-1.5">
+//                   {totalQuantity}
+//                 </span>
+//               )}
+//             </button>
+//             <Link to="/signup">
+//               <User size={20} className="text-white" />
+//             </Link>
+//           </div>
+//         </div>
+//       </header>
+
+//       {/* Main Grid */}
+//       <main className="max-w-7xl mx-auto px-4 pb-10 mt-5">
+//         <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6">
+//           {filteredPins.map((merch) => (
+//             <MerchCard key={merch.id} merch={merch} />
+//           ))}
+//         </div>
+//       </main>
+
+//       {/* Cart Sidebar */}
+//       {isCartOpen && (
+//         <div className="fixed top-0 right-0 w-80 h-full bg-zinc-900 text-white shadow-lg z-50 p-4 flex flex-col">
+//           <div className="flex justify-between items-center mb-4">
+//             <h2 className="text-xl font-semibold">Cart</h2>
+//             <button
+//               onClick={() => setIsCartOpen(false)}
+//               className="text-zinc-400 hover:text-white"
+//             >
+//               <X size={20} />
+//             </button>
+//           </div>
+
+//           {cartItems.length === 0 ? (
+//             <p className="flex-grow">Your cart is empty.</p>
+//           ) : (
+//             <>
+//               <div className="flex-grow space-y-4 overflow-y-auto">
+//                 {cartItems.map((item) => (
+//                   <div
+//                     key={item.id}
+//                     className="flex gap-3 border-b border-zinc-700 pb-2"
+//                   >
+//                     <img
+//                       src={item.image}
+//                       alt={item.title}
+//                       className="w-16 h-16 object-cover rounded"
+//                     />
+//                     <div className="flex-1">
+//                       <h3 className="font-semibold text-sm">{item.title}</h3>
+//                       <p className="text-xs text-zinc-400 line-clamp-2">
+//                         {item.description}
+//                       </p>
+//                       <div className="flex items-center gap-2 mt-2">
+//                         <button onClick={() => updateQuantity(item.id, -1)}>
+//                           <Minus size={14} />
+//                         </button>
+//                         <span>{item.quantity}</span>
+//                         <button onClick={() => updateQuantity(item.id, 1)}>
+//                           <Plus size={14} />
+//                         </button>
+//                       </div>
+//                       <p className="text-sm font-bold mt-1">
+//                         KSh.{item.price * item.quantity}
+//                       </p>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+
+//               <div className="pt-4 border-t border-zinc-700 mt-4">
+//                 <p className="text-lg font-semibold mb-2">
+//                   Total: KSh.{totalPrice.toFixed(2)}
+//                 </p>
+//                 <button
+//                   onClick={handleCheckout}
+//                   className="w-full bg-blue-400 hover:bg-blue-500 text-black font-semibold py-2 rounded"
+//                 >
+//                   Checkout
+//                 </button>
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default EcommerceLayout;
+
+import { useState, useEffect } from "react";
+import { Search, Home, User, ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 const EcommerceLayout = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [orderNumber, setOrderNumber] = useState(null);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  // Increased default max price to accommodate higher priced items
-  const [priceRange, setPriceRange] = useState([0, 20000000000000]);
-  const [sortOption, setSortOption] = useState("name-asc");
+  const navigate = useNavigate();
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  // Number of products per page, set to 8. If you have 7 items, all will fit on one page.
-  const [productsPerPage] = useState(8);
+  const isAuthenticated = false;
 
-  const [checkoutStep, setCheckoutStep] = useState("cart");
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-
-  const [userEmail, setUserEmail] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-
-  // New state to hold products fetched from the database
-  const [productsFromDb, setProductsFromDb] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [errorFetchingProducts, setErrorFetchingProducts] = useState(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const accessToken = localStorage.getItem("access_token");
-      if (!accessToken) {
-        console.log("No access token found. User not logged in.");
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          "http://localhost:5555/api/users/profile",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const userData = await response.json();
-          setUserEmail(userData.email);
-          setUserRole(userData.role);
-          console.log("User data fetched:", userData);
-        } else {
-          console.error(
-            "Failed to fetch user profile:",
-            response.status,
-            response.statusText
-          );
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          setUserEmail(null);
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
-
-  // This useEffect fetches products from the database
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        // CORRECTED: Changed endpoint to include /api/ prefix
-        const response = await fetch("http://localhost:5555/api/merchandise");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        // CORRECTED: Check for 'name' property instead of 'title'
-        if (
-          Array.isArray(data) &&
-          data.every((p) => typeof p.name === "string")
-        ) {
-          setProductsFromDb(data); // Set the fetched products to state
-        } else {
-          console.error("Fetched data is not in expected format:", data);
-          setErrorFetchingProducts(
-            "Fetched product data is malformed. Please check your backend response for 'name' property."
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setErrorFetchingProducts(
-          "Failed to load products. Please try again later. (Check backend server and endpoint)"
-        );
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
-    fetchProducts();
-  }, []); // Empty dependency array means this runs once on mount
-
-  const allProducts = productsFromDb;
-
-  // Dynamically generate categories from productsFromDb and add the fixed categories
-  const dynamicCategories = [
-    ...new Set(allProducts.map((p) => p.category).filter(Boolean)),
+  const pins = [
+    {
+      id: 1,
+      image: "https://picsum.photos/115/149?random=1",
+      title: "Air Jordan 4 Retro",
+      description:
+        "The AJ4 Retro Reimagined Bred will release on Feb 17, 2024.",
+      price: 100,
+      height: 149,
+    },
+    {
+      id: 2,
+      image: "https://picsum.photos/115/239?random=2",
+      title: "Nike Dunk Low Panda",
+      description: "Timeless black and white Dunk Low.",
+      price: 90,
+      height: 239,
+    },
+    {
+      id: 3,
+      image: "https://picsum.photos/115/121?random=3",
+      title: "Yeezy Slide Pure",
+      description: "Minimalist Yeezy comfort.",
+      price: 80,
+      height: 121,
+    },
+    {
+      id: 4,
+      image: "https://picsum.photos/115/182?random=4",
+      title: "Vintage Hoodie",
+      description: "Retro graphics inspired by 90s street culture.",
+      price: 85,
+      height: 182,
+    },
+    {
+      id: 5,
+      image: "https://picsum.photos/115/205?random=5",
+      title: "Designer Cap",
+      description: "Minimalist cap with premium materials.",
+      price: 45,
+      height: 205,
+    },
+    {
+      id: 6,
+      image: "https://picsum.photos/115/176?random=6",
+      title: "Techwear Jacket",
+      description: "Waterproof and futuristic techwear aesthetic.",
+      price: 150,
+      height: 176,
+    },
+    {
+      id: 7,
+      image: "https://picsum.photos/115/212?random=7",
+      title: "Canvas Tote Bag",
+      description: "Eco-friendly canvas tote bag for everyday use.",
+      price: 35,
+      height: 212,
+    },
+    {
+      id: 8,
+      image: "https://picsum.photos/115/199?random=8",
+      title: "Luxury Watch",
+      description: "Stainless steel automatic wristwatch.",
+      price: 400,
+      height: 199,
+    },
+    {
+      id: 9,
+      image: "https://picsum.photos/115/132?random=9",
+      title: "Running Shorts",
+      description: "Lightweight shorts for optimal performance.",
+      price: 40,
+      height: 132,
+    },
+    {
+      id: 10,
+      image: "https://picsum.photos/115/246?random=10",
+      title: "Oversized T-Shirt",
+      description: "Relaxed fit t-shirt with bold print.",
+      price: 60,
+      height: 246,
+    },
+    {
+      id: 11,
+      image: "https://picsum.photos/115/102?random=11",
+      title: "Snapback Hat",
+      description: "Adjustable snapback with embroidered logo.",
+      price: 30,
+      height: 102,
+    },
+    {
+      id: 12,
+      image: "https://picsum.photos/115/138?random=12",
+      title: "Leather Wallet",
+      description: "Premium leather wallet with RFID protection.",
+      price: 70,
+      height: 138,
+    },
+    {
+      id: 13,
+      image: "https://picsum.photos/115/157?random=13",
+      title: "Sports Bra",
+      description: "Supportive and breathable fabric design.",
+      price: 55,
+      height: 157,
+    },
+    {
+      id: 14,
+      image: "https://picsum.photos/115/144?random=14",
+      title: "Retro Sunglasses",
+      description: "Classic design with UV protection.",
+      price: 50,
+      height: 144,
+    },
+    {
+      id: 15,
+      image: "https://picsum.photos/115/210?random=15",
+      title: "Corduroy Pants",
+      description: "Vintage vibe with a modern fit.",
+      price: 75,
+      height: 210,
+    },
+    {
+      id: 16,
+      image: "https://picsum.photos/115/217?random=16",
+      title: "Bomber Jacket",
+      description: "Military-inspired bomber in bold colors.",
+      price: 120,
+      height: 217,
+    },
+    {
+      id: 17,
+      image: "https://picsum.photos/115/153?random=17",
+      title: "Chunky Sneakers",
+      description: "Maximum comfort and bold silhouette.",
+      price: 110,
+      height: 153,
+    },
+    {
+      id: 18,
+      image: "https://picsum.photos/115/162?random=18",
+      title: "Mesh Cap",
+      description: "Breathable summer-ready cap.",
+      price: 25,
+      height: 162,
+    },
+    {
+      id: 19,
+      image: "https://picsum.photos/115/125?random=19",
+      title: "Fleece Joggers",
+      description: "Soft fleece fabric for cozy loungewear.",
+      price: 65,
+      height: 125,
+    },
+    {
+      id: 20,
+      image: "https://picsum.photos/115/250?random=20",
+      title: "Graphic Hoodie",
+      description: "Eye-catching designs with comfy interior.",
+      price: 95,
+      height: 250,
+    },
+    {
+      id: 21,
+      image: "https://picsum.photos/115/111?random=21",
+      title: "Ribbed Tank Top",
+      description: "Basic essential for everyday styling.",
+      price: 35,
+      height: 111,
+    },
+    {
+      id: 22,
+      image: "https://picsum.photos/115/222?random=22",
+      title: "Slim Fit Jeans",
+      description: "Stretchy denim for active days.",
+      price: 88,
+      height: 222,
+    },
+    {
+      id: 23,
+      image: "https://picsum.photos/115/136?random=23",
+      title: "Striped Scarf",
+      description: "Soft and stylish winter scarf.",
+      price: 48,
+      height: 136,
+    },
+    {
+      id: 24,
+      image: "https://picsum.photos/115/190?random=24",
+      title: "Denim Vest",
+      description: "Layered fashion done right.",
+      price: 72,
+      height: 190,
+    },
+    {
+      id: 25,
+      image: "https://picsum.photos/115/172?random=25",
+      title: "Combat Boots",
+      description: "Durable boots with a rugged sole.",
+      price: 130,
+      height: 172,
+    },
+    {
+      id: 26,
+      image: "https://picsum.photos/115/224?random=26",
+      title: "Fanny Pack",
+      description: "Hands-free convenience with street flair.",
+      price: 55,
+      height: 224,
+    },
+    {
+      id: 27,
+      image: "https://picsum.photos/115/203?random=27",
+      title: "Zebra Print Dress",
+      description: "Wild and stylish for nights out.",
+      price: 115,
+      height: 203,
+    },
+    {
+      id: 28,
+      image: "https://picsum.photos/115/167?random=28",
+      title: "Wool Beanie",
+      description: "Stay warm in minimalist style.",
+      price: 28,
+      height: 167,
+    },
+    {
+      id: 29,
+      image: "https://picsum.photos/115/135?random=29",
+      title: "Plaid Shirt",
+      description: "Timeless layering piece.",
+      price: 64,
+      height: 135,
+    },
+    {
+      id: 30,
+      image: "https://picsum.photos/115/228?random=30",
+      title: "Leather Belt",
+      description: "Smooth buckle with polished leather.",
+      price: 38,
+      height: 228,
+    },
   ];
-  const categories = [
-    "all",
-    "electronics",
-    "accessories",
-    "footwear",
-    "clothing",
-    "home",
-    "health",
-    "defense",
-    ...dynamicCategories,
-  ].filter((value, index, self) => self.indexOf(value) === index); // Ensure uniqueness
 
-  const addToCart = (product) => {
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+
+  const filteredPins = pins.filter(
+    (pin) =>
+      pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pin.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const addToCart = (item) => {
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
         // Ensure that the product added to cart also has 'name' and 'description'
@@ -251,251 +831,59 @@ const EcommerceLayout = () => {
     setCurrentPage(1);
   };
 
-  const filteredProducts = allProducts
-    .filter((product) => {
-      if (!product || typeof product.name !== "string") {
-        console.warn("Skipping malformed product:", product);
-        return false;
-      }
+  const MerchCard = ({ merch }) => {
+    const [imageStatus, setImageStatus] = useState('loading'); // 'loading', 'loaded', 'error'
 
-      const matchesSearch =
-        searchTerm === "" ||
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.description &&
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    useEffect(() => {
+      const img = new Image();
+      img.src = merch.image;
+      img.onload = () => setImageStatus('loaded');
+      img.onerror = () => setImageStatus('error');
+    }, [merch.image]);
 
-      const matchesCategory =
-        selectedCategories.length === 0 ||
-        (product.category &&
-          selectedCategories.includes(product.category.toLowerCase()));
-
-      const matchesPrice =
-        product.price >= priceRange[0] && product.price <= priceRange[1];
-
-      return matchesSearch && matchesCategory && matchesPrice;
-    })
-
-    .sort((a, b) => {
-      // CORRECTED: Use a.name and b.name for sorting
-      if (typeof a.name !== "string" || typeof b.name !== "string") {
-        console.warn("Attempted to sort products with missing/invalid names:", {
-          a,
-          b,
-        });
-        return 0;
-      }
-      switch (sortOption) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "price-asc":
-          return a.price - b.price;
-        case "price-desc":
-          return b.price - a.price;
-        default:
-          return 0;
-      }
-    });
-
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(
-    indexOfFirstProduct,
-    indexOfLastProduct
-  );
-
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
-  const paginate = (pageNumber) => {
-    if (pageNumber < 1 || pageNumber > totalPages) return;
-    setCurrentPage(pageNumber);
-  };
-
-  const showAdminButton =
-    userEmail === "samtomashi@moringaschool.com" || userRole === "admin";
-  // const userRole = localStorage.getItem("userRole"); // or from context/props
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex">
-      <motion.div
-        initial={{ x: -250 }}
-        animate={{ x: sidebarOpen ? 0 : -250 }}
-        transition={{ type: "tween", duration: 0.3 }}
-        className="fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 p-5 shadow-lg flex flex-col justify-between"
-      >
-        <div>
-          <h2 className="text-3xl font-bold text-teal-400 mb-8">
-            {/* Replaced <a> with Link */}
-            <Link
-              to="/"
-              className="hover:text-teal-300 transition-colors duration-200"
-            >
-              MORINGA MART
-            </Link>
-          </h2>
-          <nav>
-            <ul>
-              <li className="mb-4">
-                {/* Replaced <a> with Link */}
-                {/* <Link
-                  to="/"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Home className="mr-3 h-5 w-5" /> Home
-                </Link> */}
-              </li>
-              <li className="mb-4">
-                {/* Replaced <a> with Link */}
-                {/* <Link
-                  to="/products"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Package className="mr-3 h-5 w-5" /> Products
-                </Link> */}
-              </li>
-              <li className="mb-4">
-                {/* Replaced <a> with Link */}
-                {/* <Link
-                  to="/favorites"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Star className="mr-3 h-5 w-5" /> Favorites
-                </Link> */}
-              </li>
-              <li className="mb-4">
-                {/* Replaced <a> with Link */}
-                {/* <Link
-                  to="/dashboard"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <FolderKanban className="mr-3 h-5 w-5" /> Dashboard
-                </Link> */}
-              </li>
-              {/* <li className="mb-4">
-                {showAdminButton && (
-                  <Link
-                    to="/upload-merch"
-                    className="flex items-center gap-2 text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>Upload</span>
-                  </Link>
-                )}
-              </li> */}
-            </ul>
-            <ul>
-              {/* HOME icon - dynamic based on role */}
-              <li className="mb-4">
-                <Link
-                  to={userRole === "user" ? "/home" : "/"}
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Home className="mr-3 h-5 w-5" /> Home
-                </Link>
-              </li>
-
-              {/* Products - visible to all */}
-              <li className="mb-4">
-                <Link
-                  to="/products"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Package className="mr-3 h-5 w-5" /> Products
-                </Link>
-              </li>
-
-              {/* Favorites - visible to all */}
-              <li className="mb-4">
-                <Link
-                  to="/favorites"
-                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                >
-                  <Star className="mr-3 h-5 w-5" /> Favorites
-                </Link>
-              </li>
-
-              {/* Dashboard - conditional by role */}
-              {userRole === "student" && (
-                <li className="mb-4">
-                  <Link
-                    to="/dashboard"
-                    className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                  >
-                    <FolderKanban className="mr-3 h-5 w-5" /> Dashboard
-                  </Link>
-                </li>
-              )}
-
-              {userRole === "admin" && (
-                <li className="mb-4">
-                  <Link
-                    to="/admin-dashboard"
-                    className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                  >
-                    <FolderKanban className="mr-3 h-5 w-5" /> Admin Dashboard
-                  </Link>
-                </li>
-              )}
-
-              {/* Upload - only for admin */}
-              {userRole === "admin" && (
-                <li className="mb-4">
-                  <Link
-                    to="/upload-merch"
-                    className="flex items-center gap-2 text-gray-300 hover:text-teal-400 transition-colors duration-200"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>Upload</span>
-                  </Link>
-                </li>
-              )}
-            </ul>
-          </nav>
-
-          <div className="mt-8 pt-4 border-t border-gray-700">
-            <h3 className="text-lg font-bold text-gray-200 mb-3 flex items-center">
-              <SlidersHorizontal className="mr-2 h-5 w-5" /> Price Range
-            </h3>
-            <div className="mb-2 text-gray-300 text-sm">
-              Ksh.{priceRange[0]} - Ksh.{priceRange[1]}
-            </div>
-            <div className="flex flex-col space-y-4">
-              <div>
-                <label
-                  htmlFor="minPrice"
-                  className="block text-gray-400 text-sm mb-1"
-                >
-                  Min Price: Ksh.{priceRange[0]}
-                </label>
-                <input
-                  id="minPrice"
-                  type="range"
-                  min="0"
-                  // Increased max range to accommodate large prices
-                  max="20000000000000"
-                  value={priceRange[0]}
-                  onChange={(e) => handlePriceRangeChange(e, "min")}
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-teal-500"
-                />
+    return (
+      <div className="break-inside-avoid mb-6 group cursor-pointer">
+        <div className="rounded-xl bg-zinc-900 overflow-hidden">
+          <div 
+            className="relative overflow-hidden"
+            style={{ height: `${merch.height}px` }}
+          >
+            {imageStatus === 'loading' && (
+              <div className="absolute inset-0 bg-zinc-800 animate-pulse" />
+            )}
+            
+            {imageStatus === 'loaded' && (
+              <img
+                src={merch.image}
+                alt={merch.title}
+                className="w-full h-full object-cover"
+                style={{ position: 'relative' }}
+              />
+            )}
+            
+            {imageStatus === 'error' && (
+              <div className="absolute inset-0 bg-zinc-700 flex items-center justify-center">
+                <span className="text-zinc-400 text-sm">Image not available</span>
               </div>
-              <div>
-                <label
-                  htmlFor="maxPrice"
-                  className="block text-gray-400 text-sm mb-1"
+            )}
+          </div>
+          
+          <div className="p-4">
+            <h3 className="text-white font-semibold text-lg">{merch.title}</h3>
+            <p className="text-sm text-zinc-400 line-clamp-2">
+              {merch.description}
+            </p>
+            <div className="pt-4 border-t border-zinc-700 mt-4">
+              <div className="mt-4">
+                <button
+                  onClick={() => addToCart(merch)}
+                  className="cursor-pointer rounded-full pl-4 pr-1 py-1 text-white flex items-center space-x-1 bg-black text-xs font-bold dark:bg-zinc-800 hover:bg-zinc-700 transition"
                 >
-                  Max Price: Ksh.{priceRange[1]}
-                </label>
-                <input
-                  id="maxPrice"
-                  type="range"
-                  min="0"
-                  // Increased max range to accommodate large prices
-                  max="20000000000000"
-                  value={priceRange[1]}
-                  onChange={(e) => handlePriceRangeChange(e, "max")}
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-teal-500"
-                />
+                  <span>Buy now</span>
+                  <span className="bg-zinc-700 rounded-full text-[0.6rem] px-2 py-0 text-white">
+                    KSh.{merch.price}
+                  </span>
+                </button>
               </div>
             </div>
             <button

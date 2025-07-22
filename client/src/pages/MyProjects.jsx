@@ -404,31 +404,10 @@
 import React, { useEffect, useId, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { useOutsideClick } from "../components/ui/use-outside-click"; // Make sure this path is correct for your project
-
-// --- Icon Imports ---
-import {
-  IconBook,
-  IconStar,
-  IconExternalLink,
-  IconBrandGithub,
-  IconUsers, // Added for collaborators
-} from "@tabler/icons-react";
-
-import {
-  CheckCircle, // Added for status badge
-  Clock, // Added for status badge
-  XCircle, // Added for status badge
-} from "lucide-react"; // Re-import these for MyProjects
+import { Link } from "react-router-dom";
 
 export default function MyProjects({ limit }) {
-  const navigate = useNavigate();
-  const [projects, setProjects] = useState([]); // State to store fetched projects
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeProject, setActiveProject] = useState(null); // State for the active project in the modal
+  const [active, setActive] = useState(null);
   const ref = useRef(null);
   const id = useId();
 
@@ -508,83 +487,104 @@ export default function MyProjects({ limit }) {
         </span>
       );
     }
-  };
 
-  const displayedProjects = limit ? projects.slice(0, limit) : projects;
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  useOutsideClick(ref, () => setActive(null));
 
-  if (error) {
-    return (
-      <div className="text-center p-4 text-red-500">
-        <p>{error}</p>
-        <button
-          onClick={fetchUserProjects}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const displayedCards = limit
+    ? [...cards].reverse().slice(0, limit)
+    : [...cards].reverse();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h2 className="text-3xl font-extrabold text-gray-900 mb-6">My Projects</h2>
+    <div className="divide-y divide-gray-200">
+      <Link
+        to="/dashboard"
+        className="absolute top-4 left-4 flex items-center gap-2 text-sm text-black px-2 py-1 rounded hover:bg-zinc-200 transition-colors duration-200"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        <span>Home</span>
+      </Link>
 
-      {displayedProjects.length === 0 ? (
-        <p className="text-gray-600 text-center">
-          You haven't submitted any projects yet.
-          <Link to="/submit-project" className="text-blue-600 hover:underline ml-2">
-            Submit your first project!
-          </Link>
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedProjects.map((project) => (
-            <motion.div
-              key={project.id}
-              layoutId={`card-${project.id}`}
-              onClick={() => setActiveProject(project)}
-              className="relative bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+      <AnimatePresence>
+        {active && typeof active === "object" && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm h-full w-full z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {active && typeof active === "object" && (
+          <div className="fixed inset-0 grid place-items-center z-[100]">
+            <motion.button
+              key={`button-${active.title}-${id}`}
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.05 } }}
+              className="absolute top-2 right-2 lg:hidden bg-gray-100 rounded-full h-6 w-6 flex items-center justify-center shadow"
+              onClick={() => setActive(null)}
             >
-              <div className="h-48 w-full overflow-hidden">
+              <CloseIcon />
+            </motion.button>
+
+            <motion.div
+              layoutId={`card-${active.title}-${id}`}
+              ref={ref}
+              className="w-full max-w-[500px] h-full md:h-fit md:max-h-[90%] flex flex-col bg-white sm:rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <motion.div layoutId={`image-${active.title}-${id}`}>
                 <img
-                  src={project.image || "https://via.placeholder.com/400x300?text=Project+Image"}
-                  alt={project.title}
-                  className="w-full h-full object-cover"
+                  src={active.src}
+                  alt={active.title}
+                  className="w-full h-80 lg:h-80 object-cover object-top"
                 />
-              </div>
-              <div className="p-5">
-                <h3 className="text-lg font-semibold text-gray-800 truncate mb-2">
-                  {project.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {project.description}
-                </p>
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span className="flex items-center">
-                    <IconBook className="mr-1 h-4 w-4" /> {project.category}
-                  </span>
-                  <span className="flex items-center">
-                    <IconStar className="mr-1 h-4 w-4 text-yellow-500" />{" "}
-                    {project.average_rating ? project.average_rating.toFixed(1) : "N/A"}
-                  </span>
+              </motion.div>
+
+              <div>
+                <div className="flex justify-between items-start p-4 mt-15">
+                  <div>
+                    <motion.h3
+                      layoutId={`title-${active.title}-${id}`}
+                      className="font-bold text-black"
+                    >
+                      {active.title}
+                    </motion.h3>
+                    <motion.p
+                      layoutId={`description-${active.description}-${id}`}
+                      className="text-black"
+                    >
+                      {active.description}
+                    </motion.p>
+                  </div>
+
+                  <motion.a
+                    layoutId={`button-${active.title}-${id}`}
+                    href={active.ctaLink}
+                    target="_blank"
+                    className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white"
+                  >
+                    {active.ctaText}
+                  </motion.a>
                 </div>
-                {/* Project Status Badge */}
-                <div className="mt-4">
-                  {getStatusBadge(project)}
+
+                <div className="pt-4 relative px-4">
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-black text-xs md:text-sm lg:text-base h-40 md:h-fit pb-10 flex flex-col gap-4 overflow-auto [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]"
+                  >
+                    {typeof active.content === "function"
+                      ? active.content()
+                      : active.content}
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
@@ -604,29 +604,33 @@ export default function MyProjects({ limit }) {
         </div>
       )}
 
-      <AnimatePresence>
-        {activeProject && (
-          <motion.div
-            layoutId={`card-${activeProject.id}`}
-            className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-75 flex items-center justify-center p-4"
+      <ul className="max-w-2xl mx-auto w-full divide-y divide-gray-300">
+        {displayedCards.map((card) => (
+          <motion.li
+            layoutId={`card-${card.title}-${id}`}
+            key={`card-${card.title}-${id}`}
+            onClick={() => setActive(card)}
+            className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 cursor-pointer"
           >
-            <motion.div
-              ref={ref}
-              className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-auto my-8 overflow-hidden"
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="relative h-64 sm:h-80 w-full">
+            <div className="flex gap-4 flex-col md:flex-row mt-2">
+              <motion.div layoutId={`image-${card.title}-${id}`}>
                 <img
-                  src={activeProject.image || "https://via.placeholder.com/800x600?text=Project+Image"}
-                  alt={activeProject.title}
-                  className="w-full h-full object-cover"
+                  src={card.src}
+                  alt={card.title}
+                  className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
                 />
-                <button
-                  onClick={() => setActiveProject(null)}
-                  className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100 transition"
+              </motion.div>
+
+              <div>
+                <motion.h3
+                  layoutId={`title-${card.title}-${id}`}
+                  className="font-medium text-black text-center md:text-left"
+                >
+                  {card.title}
+                </motion.h3>
+                <motion.p
+                  layoutId={`description-${card.description}-${id}`}
+                  className="text-black text-center md:text-left"
                 >
                   <CloseIcon className="h-6 w-6" />
                 </button>
@@ -653,49 +657,15 @@ export default function MyProjects({ limit }) {
                     )}
                 </div>
 
-                {/* Status and Rejection Reason */}
-                <div className="mb-4">
-                  <span className="font-semibold text-gray-800">Status: </span>
-                  {getStatusBadge(activeProject)}
-                </div>
-                {activeProject.review_reason && (
-                  <div className="mb-4 text-red-600 text-sm">
-                    <span className="font-semibold">Rejection Reason:</span>{" "}
-                    {activeProject.review_reason}
-                  </div>
-                )}
-
-
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  {activeProject.description}
-                </p>
-                <div className="flex flex-wrap gap-3 mt-auto">
-                  {activeProject.githubLink && (
-                    <a
-                      href={activeProject.githubLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition"
-                    >
-                      <IconBrandGithub className="mr-2 h-4 w-4" /> GitHub
-                    </a>
-                  )}
-                  {activeProject.livePreviewUrl && (
-                    <a
-                      href={activeProject.livePreviewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition"
-                    >
-                      <IconExternalLink className="mr-2 h-4 w-4" /> Live Demo
-                    </a>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <motion.button
+              layoutId={`button-${card.title}-${id}`}
+              className="px-4 py-2 text-sm rounded-full font-bold bg-gray-100 hover:bg-green-500 hover:text-white text-black mt-4 md:mt-0"
+            >
+              {card.ctaText}
+            </motion.button>
+          </motion.li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -716,5 +686,69 @@ export const CloseIcon = ({ className }) => (
     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
     <path d="M18 6l-12 12" />
     <path d="M6 6l12 12" />
-  </svg>
+  </motion.svg>
 );
+
+// Card Data
+const cards = [
+  {
+    title: "Summertime Sadness",
+    description: "Lana Del Rey",
+    src: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+    ctaText: "View",
+    ctaLink: "https://ui.aceternity.com/templates",
+    content: () => (
+      <p className="text-black">
+        Lana Del Rey is celebrated for her melancholic style.
+      </p>
+    ),
+  },
+  {
+    title: "Mitran Di Chhatri",
+    description: "Babbu Maan",
+    src: "https://assets.aceternity.com/demos/babbu-maan.jpeg",
+    ctaText: "View",
+    ctaLink: "https://ui.aceternity.com/templates",
+    content: () => (
+      <p className="text-black">
+        Babbu Maan is known for emotional Punjabi lyrics.
+      </p>
+    ),
+  },
+  {
+    title: "For Whom The Bell Tolls",
+    description: "Metallica",
+    src: "https://assets.aceternity.com/demos/metallica.jpeg",
+    ctaText: "View",
+    ctaLink: "https://ui.aceternity.com/templates",
+    content: () => (
+      <p className="text-black">
+        Metallica pioneers thrash metal and aggressive rhythms.
+      </p>
+    ),
+  },
+  {
+    title: "Stairway To Heaven",
+    description: "Led Zeppelin",
+    src: "https://assets.aceternity.com/demos/led-zeppelin.jpeg",
+    ctaText: "View",
+    ctaLink: "https://ui.aceternity.com/templates",
+    content: () => (
+      <p className="text-black">
+        Led Zeppelin blended blues, folk, and hard rock.
+      </p>
+    ),
+  },
+  {
+    title: "Toh Phir Aao",
+    description: "Mustafa Zahid",
+    src: "https://assets.aceternity.com/demos/toh-phir-aao.jpeg",
+    ctaText: "View",
+    ctaLink: "https://ui.aceternity.com/templates",
+    content: () => (
+      <p className="text-black">
+        "Toh Phir Aao" captures longing and emotion powerfully.
+      </p>
+    ),
+  },
+];

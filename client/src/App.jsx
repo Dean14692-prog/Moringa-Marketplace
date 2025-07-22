@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import MerchUpload from "./pages/MerchUpload";
 import AnimatedStats from "./components/animatednumbers";
 import App11 from "./pages/Home";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -54,13 +55,17 @@ function App() {
         <Routes>
         <Route path="/" element={<Landingpage />} /> 
         <Route path="/home" element={< App11 /> } />
-        <Route path="/signup" element={<SignupForm />} />
+          <Route path="/signup" element={<SignupForm />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/projects" element={<ProjectLayout />} />
         <Route path="/shop" element={<EcommerceLayout />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-projects" element={<MyProjects />} />
 
+        <Route path="/my-projects" element={<MyProjects />} />
+        <Route path="/upload-projects" element={<UploadProject />} />
+        <Route path="/upload" element={<UploadProject />} />
+        <Route path="/dashboard" element={<StudentDashBoard />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/contact-me" element={<ContactMe />} />
         <Route path="/dashboard" element={<StudentDashBoard />}>
@@ -73,7 +78,7 @@ function App() {
 
           <Route path="*" element={<NotFound />} /> 
         </Routes>
-      </GoogleOAuthContextProvider>
+    </GoogleOAuthContextProvider>
     </GoogleOAuthProvider>
   );
 }
