@@ -17,9 +17,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 function App() {
   return (
     <>
-{/* <AdminDashboard /> */}
       <Routes>
         <Route path="/" element={<Landingpage />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/signup" element={<SignupForm />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/projects" element={<ProjectLayout />} />
