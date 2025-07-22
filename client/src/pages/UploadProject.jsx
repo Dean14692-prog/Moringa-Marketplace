@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 const UploadProject = () => {
   const [formData, setFormData] = useState({
     title: "",
-    category: "",
     description: "",
     githubLink: "",
     demoLink: "",
@@ -19,8 +18,9 @@ const UploadProject = () => {
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -30,9 +30,8 @@ const UploadProject = () => {
       setFormData((prev) => ({ ...prev, file }));
 
       if (file && file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => setPreviewUrl(reader.result);
-        reader.readAsDataURL(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
       } else {
         setPreviewUrl(null);
       }
@@ -46,32 +45,67 @@ const UploadProject = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
+    setShowConfirm(true);
+  };
 
-    setTimeout(() => {
-      setSuccess(true);
+  const handleConfirmUpload = async () => {
+    try {
+      const newProject = {
+        ...formData,
+        previewUrl,
+        status: "pending",
+      };
+
+      const res = await fetch("http://localhost:3001/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProject),
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      setProjects((prev) => [...prev, data]);
+
+      setShowToast(true);
       setTimeout(() => {
-        setFormData({
-          title: "",
-          category: "",
-          description: "",
-          githubLink: "",
-          demoLink: "",
-          forSale: false,
-          price: "",
-          file: null,
-        });
-        setPreviewUrl(null);
-        setSuccess(false);
-        setLoading(false);
-      }, 1500);
-    }, 1500);
+        setShowToast(false);
+      }, 2000);
+
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        githubLink: "",
+        demoLink: "",
+        forSale: false,
+        price: "",
+        file: null,
+      });
+      setPreviewUrl(null);
+      setShowConfirm(false);
+    } catch (error) {
+      alert("Upload failed");
+      console.error(error);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black px-4 py-8 text-sm">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black px-4 py-8 text-sm relative">
+      {/* Toast */}
+      {showToast && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="absolute top-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50"
+        >
+          Project uploaded successfully!
+        </motion.div>
+      )}
+
       <Link
-        to="/"
+        to="/dashboard"
         className="absolute top-4 left-4 flex items-center gap-2 text-xs text-white px-2 py-1 rounded hover:bg-zinc-800 transition"
       >
         <svg
@@ -92,12 +126,7 @@ const UploadProject = () => {
         className="space-y-4 max-w-md w-full text-white"
       >
         <LabelInputContainer>
-          <Label
-            htmlFor="title"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            Project Title
-          </Label>
+          <Label htmlFor="title">Project Title</Label>
           <Input
             id="title"
             name="title"
@@ -105,35 +134,12 @@ const UploadProject = () => {
             value={formData.title}
             onChange={handleChange}
             required
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            className="bg-zinc-900 text-white"
           />
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label
-            htmlFor="category"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            Category
-          </Label>
-          <Input
-            id="category"
-            name="category"
-            placeholder="Project category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
-          />
-        </LabelInputContainer>
-
-        <LabelInputContainer>
-          <Label
-            htmlFor="description"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            Description
-          </Label>
+          <Label htmlFor="description">Description</Label>
           <textarea
             id="description"
             name="description"
@@ -142,17 +148,12 @@ const UploadProject = () => {
             onChange={handleChange}
             rows="3"
             required
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner px-3 py-2"
+            className="bg-zinc-900 text-white rounded px-3 py-2"
           />
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label
-            htmlFor="githubLink"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            GitHub Link
-          </Label>
+          <Label htmlFor="githubLink">GitHub Link</Label>
           <Input
             id="githubLink"
             name="githubLink"
@@ -161,25 +162,20 @@ const UploadProject = () => {
             value={formData.githubLink}
             onChange={handleChange}
             required
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            className="bg-zinc-900 text-white"
           />
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label
-            htmlFor="demoLink"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            Demo Link
-          </Label>
+          <Label htmlFor="demoLink">Demo Link</Label>
           <Input
             id="demoLink"
             name="demoLink"
             type="url"
-            placeholder="https://demo-link.com"
+            placeholder="https://demo.com"
             value={formData.demoLink}
             onChange={handleChange}
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            className="bg-zinc-900 text-white"
           />
         </LabelInputContainer>
 
@@ -197,12 +193,7 @@ const UploadProject = () => {
 
         {formData.forSale && (
           <LabelInputContainer>
-            <Label
-              htmlFor="price"
-              className="text-sm text-white text-left m-0 p-0"
-            >
-              Price (Ksh)
-            </Label>
+            <Label htmlFor="price">Price (Ksh)</Label>
             <Input
               id="price"
               name="price"
@@ -210,26 +201,20 @@ const UploadProject = () => {
               placeholder="e.g. 500"
               value={formData.price}
               onChange={handleChange}
-              min="0"
-              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+              className="bg-zinc-900 text-white"
             />
           </LabelInputContainer>
         )}
 
         <LabelInputContainer>
-          <Label
-            htmlFor="file"
-            className="text-sm text-white text-left m-0 p-0"
-          >
-            Screenshot / File
-          </Label>
+          <Label htmlFor="file">Screenshot / File</Label>
           <Input
             id="file"
             type="file"
             name="file"
             accept="image/*,application/pdf"
             onChange={handleChange}
-            className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+            className="bg-zinc-900 text-white"
           />
           {previewUrl && (
             <div className="mt-2">
@@ -245,66 +230,69 @@ const UploadProject = () => {
 
         <motion.button
           type="submit"
-          disabled={loading}
-          className={`relative flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow font-semibold transition ${
-            loading ? "opacity-60 cursor-not-allowed" : ""
-          }`}
-          whileHover={!loading && { scale: 1.05 }}
-          whileTap={!loading && { scale: 0.95 }}
-          animate={
-            !loading &&
-            !success && {
-              boxShadow: [
-                "0 0 0px #f59e0b",
-                "0 0 10px #f59e0b",
-                "0 0 0px #f59e0b",
-              ],
-            }
-          }
-          transition={{ duration: 1.5, repeat: Infinity }}
+          className="relative flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow font-semibold transition"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          {loading ? (
-            <>
-              <svg
-                className="animate-spin h-4 w-4 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-              Uploading...
-            </>
-          ) : success ? (
-            <>
-              <CheckCircle className="h-4 w-4 text-white" />
-              Uploaded!
-            </>
-          ) : (
-            "Upload Project"
-          )}
+          Upload Project
         </motion.button>
       </form>
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 p-6 rounded-lg max-w-md w-full text-white space-y-4">
+            <h2 className="text-lg font-bold">Confirm Upload</h2>
+            <div>
+              <p>
+                <strong>Title:</strong> {formData.title}
+              </p>
+              <p>
+                <strong>Description:</strong> {formData.description}
+              </p>
+              <p>
+                <strong>GitHub:</strong> {formData.githubLink}
+              </p>
+              {formData.demoLink && (
+                <p>
+                  <strong>Demo:</strong> {formData.demoLink}
+                </p>
+              )}
+              {formData.forSale && (
+                <p>
+                  <strong>Price:</strong> Ksh {formData.price}
+                </p>
+              )}
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="mt-2 max-h-40 rounded"
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmUpload}
+                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600"
+              >
+                Confirm & Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default UploadProject;
 
-const LabelInputContainer = ({ children, className }) => {
-  return (
-    <div className={cn("flex flex-col w-full", className)}>{children}</div>
-  );
-};
+const LabelInputContainer = ({ children, className }) => (
+  <div className={cn("flex flex-col w-full", className)}>{children}</div>
+);

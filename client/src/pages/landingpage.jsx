@@ -12,9 +12,9 @@ const Landingpage = () => {
     <div>
       <Navbar />
       <HerosSection />
+      <AnimatedTooltipPreview />
       <Carousel />
       <MerchCard />
-      <AnimatedTooltipPreview />
       <AnimatedTestimonialsDemo />
       <Footer />
     </div>

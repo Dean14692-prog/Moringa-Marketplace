@@ -1,39 +1,103 @@
-"use client";
-import React from "react";
+import React, { useState } from "react";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function SignupForm() {
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    firstname: "",
+    lastname: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.id]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted");
+    const { firstname, lastname, email, password, confirmPassword } = formData;
+
+    if (!firstname || !lastname || !email || !password || !confirmPassword) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const checkRes = await fetch(
+        `http://localhost:3001/users?email=${email}`
+      );
+      const existingUsers = await checkRes.json();
+
+      if (existingUsers.length > 0) {
+        toast.error("Email already exists.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("http://localhost:3001/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstname, lastname, email, password }),
+      });
+
+      if (res.ok) {
+        toast.success("Signup successful! Redirecting to login...");
+        navigate("/login");
+      } else {
+        throw new Error("Signup failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-black px-4 overflow-hidden">
+    <div className="min-h-screen w-full flex items-center justify-center bg-black px-4 overflow-hidden relative">
+      <ToastContainer position="top-center" autoClose={2000} />
+      <Link
+        to="/"
+        className="absolute top-4 left-4 flex items-center gap-1 text-sm text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors duration-200"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          className="h-4 w-4"
+        >
+          <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
+        </svg>
+        <span>Home</span>
+      </Link>
+
       <div className="w-full max-w-md bg-black p-4 md:rounded-2xl md:p-8 border-none">
         <h2 className="text-xl font-bold text-white text-center mb-4">
           Create Account
         </h2>
+
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-4 md:flex-row">
-          <Link
-            to="/login"
-            className="absolute top-4 left-4 flex items-center gap-1 text-sm text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors duration-200"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              className="h-4 w-4"
-            >
-              <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
-            </svg>
-            <span>Home</span>
-          </Link>
-
             <LabelInputContainer>
               <Label
                 htmlFor="firstname"
@@ -43,9 +107,12 @@ export default function SignupForm() {
               </Label>
               <Input
                 id="firstname"
-                placeholder="First Name"
                 type="text"
-                className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+                placeholder="First Name"
+                className="bg-zinc-900 text-white"
+                value={formData.firstname}
+                onChange={handleChange}
+                required
               />
             </LabelInputContainer>
             <LabelInputContainer>
@@ -57,9 +124,12 @@ export default function SignupForm() {
               </Label>
               <Input
                 id="lastname"
-                placeholder="Last Name"
                 type="text"
-                className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+                placeholder="Last Name"
+                className="bg-zinc-900 text-white"
+                value={formData.lastname}
+                onChange={handleChange}
+                required
               />
             </LabelInputContainer>
           </div>
@@ -70,9 +140,12 @@ export default function SignupForm() {
             </Label>
             <Input
               id="email"
-              placeholder="email adress"
               type="email"
-              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+              placeholder="Email"
+              className="bg-zinc-900 text-white"
+              value={formData.email}
+              onChange={handleChange}
+              required
             />
           </LabelInputContainer>
 
@@ -82,38 +155,45 @@ export default function SignupForm() {
             </Label>
             <Input
               id="password"
-              placeholder="password"
               type="password"
-              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+              placeholder="Password"
+              className="bg-zinc-900 text-white"
+              value={formData.password}
+              onChange={handleChange}
+              required
             />
           </LabelInputContainer>
 
           <LabelInputContainer>
             <Label
-              htmlFor="twitterpassword"
+              htmlFor="confirmPassword"
               className="text-sm text-white text-left"
             >
-              Confirm your password
+              Confirm Password
             </Label>
             <Input
-              id="twitterpassword"
-              placeholder="confirm password"
+              id="confirmPassword"
               type="password"
-              className="bg-zinc-900 text-white border-none rounded-md shadow-inner h-10 px-3"
+              placeholder="Confirm Password"
+              className="bg-zinc-900 text-white"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
             />
           </LabelInputContainer>
 
           <button
-            className="relative group/btn h-10 w-full rounded-md bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition mt-2"
+            className="relative group/btn h-10 w-full rounded-md bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition mt-2 disabled:opacity-50"
             type="submit"
+            disabled={loading}
           >
-            Sign up
+            {loading ? "Signing up..." : "Sign up"}
             <BottomGradient />
           </button>
 
           <p className="text-sm text-neutral-400 text-center">
-            Already have an account?
-            <Link to="/login" className="text-cyan-700 hover:underline gap-1">
+            Already have an account?{" "}
+            <Link to="/login" className="text-cyan-700 hover:underline">
               Login here
             </Link>
           </p>
@@ -125,13 +205,11 @@ export default function SignupForm() {
   );
 }
 
-const LabelInputContainer = ({ children, className }) => {
-  return (
-    <div className={cn("flex flex-col w-full space-y-1", className)}>
-      {children}
-    </div>
-  );
-};
+const LabelInputContainer = ({ children, className }) => (
+  <div className={cn("flex flex-col w-full space-y-1", className)}>
+    {children}
+  </div>
+);
 
 const BottomGradient = () => (
   <>
