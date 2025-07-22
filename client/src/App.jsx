@@ -1,6 +1,5 @@
 import { Routes, Route } from "react-router-dom";
 import "./App.css";
-import Navbar from "./components/navbar";
 import Landingpage from "./pages/landingpage";
 import SignupForm from "./pages/signup";
 import LoginForm from "./pages/login";
@@ -13,10 +12,12 @@ import { StudentDashBoard } from "./pages/StudentDashBoard";
 import NotFound from "./pages/NotFoundpage";
 import ContactUs from "./pages/ContactUs";
 import ContactMe from "./pages/ContactMe";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
     <>
+{/* <AdminDashboard /> */}
       <Routes>
         <Route path="/" element={<Landingpage />} />
         <Route path="/signup" element={<SignupForm />} />
@@ -24,7 +25,8 @@ function App() {
         <Route path="/projects" element={<ProjectLayout />} />
         <Route path="/shop" element={<EcommerceLayout />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="my-projects" element={<MyProjects />} />
+        <Route path="/my-projects" element={<MyProjects />} />
+        <Route path="/upload-projects" element={<UploadProject />} />
         <Route path="/upload" element={<UploadProject />} />
         <Route path="/dashboard" element={<StudentDashBoard />} />
         <Route path="/contact" element={<ContactUs />} />
@@ -35,4 +37,3 @@ function App() {
   );
 }
 export default App;
-
