@@ -167,6 +167,7 @@ class Project(db.Model):
     uploaded_by = db.Column(db.String(255), nullable=False) 
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    file=db.Column(db.LargeBinary)  # Optional file upload for project files
 
     users_projects_link = relationship('UsersProject', back_populates='project', lazy=True, cascade="all, delete-orphan")
 
@@ -207,7 +208,7 @@ class Project(db.Model):
         db.session.commit()
 
     @classmethod
-    def create(cls, title, description, category, github_link, uploaded_by, tech_stack=None, live_preview_url=None, isForSale=False, price=0.0, isApproved=False, status_changed_by=None):
+    def create(cls, title, description, category, github_link, uploaded_by, tech_stack=None, live_preview_url=None, isForSale=False, price=0.0, isApproved=False, status_changed_by=None, file=None):
         project = cls(
             title=title,
             description=description,
@@ -219,7 +220,8 @@ class Project(db.Model):
             price=price,
             isApproved=isApproved,
             status_changed_by=status_changed_by,
-            uploaded_by=uploaded_by
+            uploaded_by=uploaded_by,
+            file=file
         )
         project.save()
         return project
