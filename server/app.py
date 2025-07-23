@@ -25,7 +25,7 @@ else:
     print("DEBUG: JWT_SECRET_KEY NOT loaded from .env. Using fallback.")
 
 app = Flask(__name__)
-CORS(app)
+
 
 
 
@@ -52,6 +52,8 @@ jwt = JWTManager(app)
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 api = Api(api_bp)
+
+CORS(api_bp, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
 def allowed_file(filename):
     return '.' in filename and \
