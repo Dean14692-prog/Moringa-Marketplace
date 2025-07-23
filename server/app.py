@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-# Corrected import statement: Removed Student, Company, ContactRequest, TeamProject
 from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem
 import os
 import json
@@ -332,6 +331,7 @@ class ProjectUpload(Resource):
         live_preview_url = request.form.get('live_preview_url', '')
         isForSale = request.form.get('isForSale', 'false').lower() == 'true'
         price = float(request.form.get('price', 0))
+        file = request.form.get('file')
 
         # Validate required fields
         if not all([title, description, github_link]):
@@ -358,10 +358,10 @@ class ProjectUpload(Resource):
             live_preview_url=live_preview_url,
             isForSale=isForSale,
             price=price,
-            file_url=file_url,
             uploaded_by=current_user.username,
             isApproved=False,
-            status_changed_by=None
+            status_changed_by=None,
+            file=None if file_url is None else file_url 
         )
 
         # Log the upload action
