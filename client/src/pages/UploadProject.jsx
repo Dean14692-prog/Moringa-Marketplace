@@ -1,22 +1,24 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { Label } from "../components/ui/label"; // Assuming these components exist
+import { Input } from "../components/ui/input"; // Assuming these components exist
+import { cn } from "@/lib/utils"; // Assuming this utility function exists
+import { toast } from "sonner"; // Assuming sonner for toasts
 
-const UploadProject = () => {
+function UploadProject({ onProjectUpload }) {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     githubLink: "",
-    demoLink: "",
-    forSale: false,
-    price: "",
-    file: null,
+    demoLink: "", // Corresponds to livePreviewUrl
+    forSale: false, // Corresponds to isForSale
+    price: "", // Corresponds to price
+    file: null, // Corresponds to file
+    category: "web", // New field
+    techStack: "", // New field
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -25,7 +27,7 @@ const UploadProject = () => {
 
   // Redirect to login if token is missing
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token"); // Using access_token as per original
     if (!token) {
       toast.warning("You must log in to upload a project.");
       navigate("/login");
@@ -74,7 +76,7 @@ const UploadProject = () => {
   const handleConfirmUpload = async () => {
     setIsLoading(true);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     if (!token) {
       toast.error("Missing authentication. Please log in.");
       navigate("/login");
@@ -88,14 +90,15 @@ const UploadProject = () => {
     data.append("live_preview_url", formData.demoLink || "");
     data.append("isForSale", formData.forSale.toString());
     data.append("price", formData.price || "0");
-    data.append("tech_stack", "React, Flask");
+    data.append("category", formData.category); // Appending new field
+    data.append("tech_stack", formData.techStack); // Appending new field
 
     if (formData.file) {
       data.append("file", formData.file);
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/projects/upload", {
+      const res = await fetch("http://127.0.0.1:5555/api/projects/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -104,10 +107,18 @@ const UploadProject = () => {
       });
 
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          toast.error("Session expired or unauthorized. Please log in again.");
+          setTimeout(() => navigate("/login"), 1500);
+          return;
+        }
         const errData = await res.json();
         throw new Error(errData.msg || "Upload failed");
       }
 
+      const result = await res.json();
       toast.success("Project uploaded successfully!");
       setFormData({
         title: "",
@@ -117,9 +128,15 @@ const UploadProject = () => {
         forSale: false,
         price: "",
         file: null,
+        category: "web",
+        techStack: "",
       });
       setPreviewUrl(null);
       setShowConfirm(false);
+
+      if (onProjectUpload) {
+        onProjectUpload(result);
+      }
       navigate("/dashboard");
     } catch (error) {
       toast.error("Upload failed: " + error.message);
@@ -197,13 +214,43 @@ const UploadProject = () => {
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label htmlFor="demoLink">Demo Link</Label>
+          <Label htmlFor="demoLink">Live Preview URL (Optional)</Label>
           <Input
             id="demoLink"
             name="demoLink"
             type="url"
             placeholder="https://demo.com"
             value={formData.demoLink}
+            onChange={handleChange}
+            className="bg-zinc-900 text-white"
+          />
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label htmlFor="category">Category</Label>
+          <select
+            id="category"
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white"
+          >
+            <option value="web">Web Development</option>
+            <option value="mobile">Mobile Development</option>
+            <option value="data_science">Data Science</option>
+            <option value="ai_ml">AI/ML</option>
+            <option value="other">Other</option>
+          </select>
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label htmlFor="techStack">Tech Stack (comma-separated)</Label>
+          <Input
+            id="techStack"
+            name="techStack"
+            type="text"
+            placeholder="React, Flask, PostgreSQL"
+            value={formData.techStack}
             onChange={handleChange}
             className="bg-zinc-900 text-white"
           />
@@ -287,7 +334,17 @@ const UploadProject = () => {
               </p>
               {formData.demoLink && (
                 <p>
-                  <strong>Demo:</strong> {formData.demoLink}
+                  <strong>Live Preview:</strong> {formData.demoLink}
+                </p>
+              )}
+              {formData.category && (
+                <p>
+                  <strong>Category:</strong> {formData.category}
+                </p>
+              )}
+              {formData.techStack && (
+                <p>
+                  <strong>Tech Stack:</strong> {formData.techStack}
                 </p>
               )}
               {formData.forSale && (
@@ -348,7 +405,7 @@ const UploadProject = () => {
       )}
     </div>
   );
-};
+}
 
 export default UploadProject;
 
