@@ -1,8 +1,8 @@
-"""First Migration
+"""Migrate
 
-Revision ID: ec001f9e0575
+Revision ID: 1caf014c98b9
 Revises: 
-Create Date: 2025-07-22 22:29:55.739334
+Create Date: 2025-07-23 14:22:36.949235
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ec001f9e0575'
+revision = '1caf014c98b9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -44,6 +44,7 @@ def upgrade():
     sa.Column('uploaded_by', sa.String(length=255), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('file', sa.LargeBinary(), nullable=True),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_projects'))
     )
     op.create_table('roles',

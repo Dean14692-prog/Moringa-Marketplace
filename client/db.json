@@ -1,18 +1,15 @@
 {
-  "users": [
+  "login": [
     {
-      "id": "edd4",
-      "firstname": "Dennis",
-      "lastname": "Ngui",
-      "email": "dennismuasyangui@gmail.com",
+      "id": "3286",
+      "email": "tyu@gmail.com",
       "password": "12345"
     },
     {
-      "id": "5211",
-      "firstname": "Ken",
-      "lastname": "Tuei",
-      "email": "tueituei@gmail.com",
-      "password": "1397"
+      "id": "bb9d",
+      "email": "riko@gmail.com",
+      "password": "12345"
     }
-  ]
+  ],
+  "projects": []
 }

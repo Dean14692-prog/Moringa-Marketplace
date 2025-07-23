@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-# Corrected import statement: Removed Student, Company, ContactRequest, TeamProject
 from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem
 import os
 import json
@@ -27,6 +26,7 @@ else:
 
 app = Flask(__name__)
 CORS(app)
+
 
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///moringa_marketplace.db")
@@ -243,76 +243,6 @@ class UserProject(Resource):
         project.delete()
         return {"msg": "Project deleted"}, 200
 
-# class ProjectUpload(Resource):
-#     @jwt_required()
-#     def post(self):
-#         current_user_id = get_jwt_identity()
-#         current_user = User.get_by_id(current_user_id)
-#         if not current_user:
-#             return {"msg": "User not found"}, 404
-#         data = request.get_json()
-        
-#         title = data.get('title')
-#         category = data.get('category')
-#         description = data.get('description')
-#         tech_stack = data.get('tech_stack')
-#         github_link = data.get('github_link')
-#         live_preview_url = data.get('live_preview_url')
-#         isForSale = data.get('isForSale', 'false').lower() == 'true'
-#         price = float(data.get('price', 0))
-
-#         if not all([title, category, description, github_link]):
-#             return {"msg": "Missing required project fields (title, category, description, github_link)"}, 400
-
-#         file_url = None
-#         if 'file' in request.files:
-#             file = request.files['file']
-#             if file.filename == '':
-#                 return {"msg": "No selected file" }, 400
-
-#             if file and allowed_file(file.filename):
-#                 filename = secure_filename(file.filename)
-#                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-#                 file.save(file_path)
-#                 file_url = f"/uploads/{filename}"
-
-#         new_project = Project.create(
-#             title=title,
-#             category=category,
-#             description=description,
-#             tech_stack=tech_stack,
-#             github_link=github_link,
-#             live_preview_url=live_preview_url,
-#             isForSale=isForSale,
-#             price=price,
-#             uploaded_by=current_user.username, # Use username string
-#             isApproved=False, # Projects start as pending approval
-#             status_changed_by=None # No one has approved it yet
-#         )
-
-#         # Log the 'uploading' action in UsersProject
-#         UsersProject.create(user_id=current_user_id, project_id=new_project.id, action='uploading')
-
-#         # Handle additional team members/actions if provided
-#         additional_actions_data = request.form.get('additional_actions_json')
-#         if additional_actions_data:
-#             try:
-#                 actions_list = json.loads(additional_actions_data)
-#                 for action_info in actions_list:
-#                     member_user_id = action_info.get('user_id')
-#                     action_type = action_info.get('action') # e.g., 'commenting', 'liking', 'collaborating'
-                    
-#                     if member_user_id and action_type:
-#                         target_user = User.get_by_id(member_user_id)
-#                         if target_user:
-                            
-#                             UsersProject.create(user_id=member_user_id, project_id=new_project.id, action=action_type)
-#                         else:
-#                             print(f"Warning: User with ID {member_user_id} not found for additional action.")
-#             except json.JSONDecodeError:
-#                 print("Warning: Could not parse additional_actions_json. Skipping.")
-
-#         return new_project.serialize(), 201
 
 class ProjectUpload(Resource):
     @jwt_required()
@@ -332,6 +262,7 @@ class ProjectUpload(Resource):
         live_preview_url = request.form.get('live_preview_url', '')
         isForSale = request.form.get('isForSale', 'false').lower() == 'true'
         price = float(request.form.get('price', 0))
+        file = request.form.get('file')
 
         # Validate required fields
         if not all([title, description, github_link]):
@@ -358,10 +289,10 @@ class ProjectUpload(Resource):
             live_preview_url=live_preview_url,
             isForSale=isForSale,
             price=price,
-            file_url=file_url,
             uploaded_by=current_user.username,
             isApproved=False,
-            status_changed_by=None
+            status_changed_by=None,
+            file=None if file_url is None else file_url 
         )
 
         # Log the upload action

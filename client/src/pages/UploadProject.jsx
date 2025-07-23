@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Label } from "../components/ui/label";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 const UploadProject = () => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -22,14 +23,23 @@ const UploadProject = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect to login if token is missing
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.warning("You must log in to upload a project.");
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  // Handle form inputs
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
     if (type === "file") {
       const file = files[0];
       setFormData((prev) => ({ ...prev, file }));
-
-      if (file && file.type.startsWith("image/")) {
+      if (file?.type?.startsWith("image/")) {
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
       } else {
@@ -43,6 +53,7 @@ const UploadProject = () => {
     }
   };
 
+  // Handle submit click
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -59,54 +70,45 @@ const UploadProject = () => {
     setShowConfirm(true);
   };
 
+  // Confirm and upload project
   const handleConfirmUpload = async () => {
     setIsLoading(true);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Missing authentication. Please log in.");
+      navigate("/login");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("title", formData.title);
+    data.append("description", formData.description);
+    data.append("github_link", formData.githubLink);
+    data.append("live_preview_url", formData.demoLink || "");
+    data.append("isForSale", formData.forSale.toString());
+    data.append("price", formData.price || "0");
+    data.append("tech_stack", "React, Flask");
+
+    if (formData.file) {
+      data.append("file", formData.file);
+    }
+
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("You must be logged in to upload projects");
-        navigate("/login");
-        return;
-      }
-
-      const form = new FormData();
-      form.append("title", formData.title);
-      form.append("category", "web");
-      form.append("description", formData.description);
-      form.append("github_link", formData.githubLink);
-      form.append("live_preview_url", formData.demoLink || "");
-      form.append("isForSale", formData.forSale.toString());
-      form.append("price", formData.price || "0");
-      form.append("tech_stack", "React, Flask"); // Default or make dynamic
-
-      if (formData.file) {
-        form.append("file", formData.file);
-      }
-
-      const res = await fetch("http://127.0.0.1:5000/api/projects", {
+      const res = await fetch("http://127.0.0.1:5000/api/projects/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        body: form,
+        body: data,
       });
 
-      if (res.status === 401) {
-        toast.error("Session expired. Please login again.");
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
-
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.msg || "Upload failed");
+        const errData = await res.json();
+        throw new Error(errData.msg || "Upload failed");
       }
 
-      const data = await res.json();
-      toast.success("Project uploaded successfully! Awaiting admin approval.");
-
-      // Reset form
+      toast.success("Project uploaded successfully!");
       setFormData({
         title: "",
         description: "",
@@ -118,11 +120,10 @@ const UploadProject = () => {
       });
       setPreviewUrl(null);
       setShowConfirm(false);
-
       navigate("/dashboard");
     } catch (error) {
       toast.error("Upload failed: " + error.message);
-      console.error(error);
+      console.error("UPLOAD ERROR:", error);
     } finally {
       setIsLoading(false);
     }
@@ -130,20 +131,23 @@ const UploadProject = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black px-4 py-8 text-sm relative">
-      <Link
-        to="/dashboard"
-        className="absolute top-4 left-4 flex items-center gap-2 text-xs text-white px-2 py-1 rounded hover:bg-zinc-800 transition"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-          className="h-4 w-4"
+      {/* Back to dashboard */}
+      <div className="absolute top-4 left-4">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 text-xs text-white px-2 py-1 rounded hover:bg-zinc-800 transition"
         >
-          <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
-        </svg>
-        <span>Home</span>
-      </Link>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            className="h-4 w-4"
+          >
+            <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
+          </svg>
+          <span>Home</span>
+        </Link>
+      </div>
 
       <h1 className="text-xl font-bold mb-4 text-white">Upload New Project</h1>
 
@@ -228,7 +232,7 @@ const UploadProject = () => {
               placeholder="e.g. 500"
               value={formData.price}
               onChange={handleChange}
-              required={formData.forSale}
+              required
               className="bg-zinc-900 text-white"
               min="0"
             />
@@ -325,12 +329,12 @@ const UploadProject = () => {
                         r="10"
                         stroke="currentColor"
                         strokeWidth="4"
-                      ></circle>
+                      />
                       <path
                         className="opacity-75"
                         fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
                     </svg>
                     Uploading...
                   </>
@@ -351,4 +355,3 @@ export default UploadProject;
 const LabelInputContainer = ({ children, className }) => (
   <div className={cn("flex flex-col w-full gap-1", className)}>{children}</div>
 );
-
