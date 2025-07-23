@@ -1,6 +1,5 @@
-"use client";
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import UploadProject from "./UploadProject";
@@ -17,9 +16,9 @@ import {
   IconUsers,
   IconUpload,
 } from "@tabler/icons-react";
-import MyProjects from "./MyProjects";
 
 export function StudentDashBoard() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([
     {
       id: 1,
@@ -49,13 +48,60 @@ export function StudentDashBoard() {
       description: "IoT control panel for managing smart home devices",
       src: "https://images.unsplash.com/photo-1558002038-1055907df827?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
       link: "/projects/smart-home",
-    }
+    },
   ]);
 
   const [activeLink, setActiveLink] = useState("Dashboard");
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        console.warn("No authentication token found. Redirecting to login.");
+        navigate("/login");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const res = await fetch("http://127.0.0.1:5000/api/user/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            navigate("/login");
+            return;
+          }
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setUserName(data.username || data.name || "Student");
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data. Redirecting to login...");
+        setTimeout(() => navigate("/login"), 3000);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
 
   const handleProjectUpload = (newProject) => {
-    setProjects((prevProjects) => [newProject, ...prevProjects]);
+    setProjects((prev) => [newProject, ...prev]);
     setActiveLink("Dashboard");
   };
 
@@ -64,11 +110,10 @@ export function StudentDashBoard() {
       label: "Dashboard",
       href: "/dashboard",
       icon: <IconBrandTabler className="h-5 w-5 shrink-0" />,
-      active: true,
     },
     {
       label: "Upload Projects",
-      href: "/upload-projects",
+      href: "/dashboard/upload-project",
       icon: <IconUpload className="h-5 w-5 shrink-0" />,
     },
     {
@@ -93,17 +138,31 @@ export function StudentDashBoard() {
     },
   ];
 
-  const [open, setOpen] = useState(true);
-
   const renderComponent = () => {
     switch (activeLink) {
       case "Upload Projects":
         return <UploadProject onProjectUpload={handleProjectUpload} />;
       case "Dashboard":
       default:
-        return <Dashboard projects={projects} />;
+        return <Dashboard projects={projects} userName={userName} />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 items-center justify-center">
+        <div className="text-red-500 dark:text-red-400 text-lg">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900">
@@ -117,7 +176,6 @@ export function StudentDashBoard() {
           "flex flex-col border-r border-gray-200 dark:border-neutral-700"
         )}
       >
-        {/* Div */}
         <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-neutral-700">
           <div />
           <button
@@ -140,7 +198,6 @@ export function StudentDashBoard() {
             </svg>
           </button>
         </div>
-
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="space-y-1 px-3">
             {links.map((link) => (
@@ -179,7 +236,6 @@ export function StudentDashBoard() {
             ))}
           </nav>
         </div>
-
         <div className="p-4 border-t border-gray-200 dark:border-neutral-700">
           <div className="flex items-center space-x-3">
             <div className="relative">
@@ -197,7 +253,7 @@ export function StudentDashBoard() {
                 className="flex-1 min-w-0"
               >
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  Dennis Ngui
+                  {userName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   Student
@@ -226,8 +282,7 @@ export function StudentDashBoard() {
   );
 }
 
-// Dashboard content
-const Dashboard = ({ projects }) => {
+const Dashboard = ({ projects, userName }) => {
   const notifications = [
     {
       id: 1,
@@ -286,7 +341,7 @@ const Dashboard = ({ projects }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Welcome back
+            Welcome back, {userName}!
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Here's what's happening with your courses today
@@ -389,9 +444,7 @@ const Dashboard = ({ projects }) => {
               </Link>
             </div>
             <ul className="divide-y divide-gray-200 dark:divide-neutral-700">
-
-              {/* <MyProjects limit={4} /> */}
-              {/* <MyProjects /> */}
+              {/* Project list would go here */}
             </ul>
           </div>
         </div>

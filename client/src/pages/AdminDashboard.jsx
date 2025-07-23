@@ -1,612 +1,888 @@
-import React, { useState, useEffect } from "react";
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  MessageSquare,
-  User,
-  Calendar,
-  Filter,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, NavLink } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+
+const PROJECTS_PER_PAGE = 8; // Define how many projects per page
 
 const AdminDashboard = () => {
-  const [pendingMessages, setPendingMessages] = useState([]);
-  const [approvedProjects, setApprovedProjects] = useState([]);
-  const [rejectedProjects, setRejectedProjects] = useState([]);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState("pending");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const categories = [
-    "all",
-    "Web Development",
-    "Mobile Development",
-    "Blockchain",
-    "IoT",
-    "AI/ML",
-  ];
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rejectionInput, setRejectionInput] = useState({
+    show: false,
+    id: null,
+    reason: "",
+  });
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1); // New state for current page
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          // Handle unauthorized access
-          return;
-        }
-
-        // Fetch pending projects
-        const pendingRes = await fetch(
-          "http://127.0.0.1:5000/api/projects?status=pending",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const pendingData = await pendingRes.json();
-        setPendingMessages(pendingData);
-
-        // Fetch approved projects
-        const approvedRes = await fetch(
-          "http://127.0.0.1:5000/api/projects?status=approved",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const approvedData = await approvedRes.json();
-        setApprovedProjects(approvedData);
-
-        // Fetch rejected projects
-        const rejectedRes = await fetch(
-          "http://127.0.0.1:5000/api/projects?status=rejected",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const rejectedData = await rejectedRes.json();
-        setRejectedProjects(rejectedData);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProjects();
+    fetch("http://127.0.0.1:3001/projects")
+      .then((res) => res.json())
+      .then((data) => {
+        setProjects(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error("Failed to fetch projects");
+        setLoading(false);
+      });
   }, []);
 
-  const handleApprove = async (projectId) => {
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://127.0.0.1:5000/api/projects/${projectId}/approve`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (res.ok) {
-        const updatedProject = await res.json();
-        setApprovedProjects((prev) => [...prev, updatedProject]);
-        setPendingMessages((prev) =>
-          prev.filter((msg) => msg.id !== projectId)
-        );
-        setSelectedMessage(null);
-        showNotification(
-          `Project "${updatedProject.title}" approved!`
-        );
-      }
-    } catch (error) {
-      console.error("Error approving project:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleApprove = (projectId) => {
+    const updated = projects.map((p) =>
+      p.id === projectId ? { ...p, status: "approved", reviewReason: "" } : p
+    );
+    setProjects(updated);
+    toast.success("Project approved successfully!");
   };
 
-  const handleReject = async (projectId, rejectionReason) => {
-    if (!rejectionReason.trim()) {
-      alert("Please provide a reason for rejection");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://127.0.0.1:5000/api/projects/${projectId}/reject`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ rejectionReason }),
-        }
-      );
-
-      if (res.ok) {
-        const rejectedProject = await res.json();
-        setRejectedProjects((prev) => [...prev, rejectedProject]);
-        setPendingMessages((prev) =>
-          prev.filter((msg) => msg.id !== projectId)
-        );
-        setSelectedMessage(null);
-        showNotification(
-          `Project "${rejectedProject.title}" rejected.`
-        );
-      }
-    } catch (error) {
-      console.error("Error rejecting project:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRejectPrompt = (projectId) => {
+    setRejectionInput({ show: true, id: projectId, reason: "" });
   };
 
-  const showNotification = (message) => {
-    // Create a temporary notification element
-    const notification = document.createElement("div");
-    notification.className =
-      "fixed top-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300";
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      notification.style.opacity = "0";
-      setTimeout(() => document.body.removeChild(notification), 300);
-    }, 3000);
+  const submitRejection = () => {
+    const { id, reason } = rejectionInput;
+    if (!reason.trim()) {
+      return toast.warning("Please enter a rejection reason.");
+    }
+    const updated = projects.map((p) =>
+      p.id === id ? { ...p, status: "rejected", reviewReason: reason } : p
+    );
+    setProjects(updated);
+    setRejectionInput({ show: false, id: null, reason: "" });
+    toast.success("Project rejected successfully!");
   };
 
-  const filteredPendingMessages =
-    filterCategory === "all"
-      ? pendingMessages
-      : pendingMessages.filter((msg) => msg.category === filterCategory);
+  // Filter projects based on search term and active tab
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const filteredApprovedProjects =
-    filterCategory === "all"
-      ? approvedProjects
-      : approvedProjects.filter((proj) => proj.category === filterCategory);
+    if (activeTab === "all") return matchesSearch;
+    if (activeTab === "pending") return !project.status && matchesSearch;
+    if (activeTab === "approved")
+      return project.status === "approved" && matchesSearch;
+    if (activeTab === "rejected")
+      return project.status === "rejected" && matchesSearch;
 
-  const filteredRejectedProjects =
-    filterCategory === "all"
-      ? rejectedProjects
-      : rejectedProjects.filter((proj) => proj.category === filterCategory);
+    return true;
+  });
+
+  // Calculate total pages for pagination
+  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE);
+
+  // Get projects for the current page
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * PROJECTS_PER_PAGE,
+    currentPage * PROJECTS_PER_PAGE
+  );
+
+  const goToNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+    <div className="flex min-h-screen bg-gray-900 text-gray-100">
+      {/* Sidebar */}
+      <motion.aside
+        initial={false}
+        animate={{ width: isSidebarOpen ? 256 : 80 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="bg-gray-800 shadow-lg p-4 flex flex-col items-center sticky top-0 h-screen border-r border-gray-700"
+      >
+        <div className="mb-10 mt-4 flex justify-between items-center w-full px-2">
+          {isSidebarOpen && (
+            <Link
+              to="/"
+              className="text-2xl font-extrabold text-blue-400 whitespace-nowrap overflow-hidden"
+            >
+              DevHub Admin
+            </Link>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-full text-gray-400 hover:bg-gray-700 hover:text-blue-400 transition-colors duration-200"
+            title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isSidebarOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 9l3 3m0 0l-3 3m3-3H6m6 10a9 9 0 1118 0 9 9 0 01-18 0z"
+                />
+              )}
+            </svg>
+          </button>
+        </div>
+        <nav className="space-y-4 w-full">
+          {/* Using NavLink for active styling */}
+          <NavLink
+            to="/admin-dashboard" // Example path, adjust as needed
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-blue-400"
+              } ${!isSidebarOpen && "justify-center"}`
+            }
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l7 7m-7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            {isSidebarOpen && (
+              <span className="font-medium whitespace-nowrap overflow-hidden">
+                Dashboard
+              </span>
+            )}
+          </NavLink>
+
+          <NavLink
+            to="/admin-projects" // Example path, adjust as needed
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-blue-400"
+              } ${!isSidebarOpen && "justify-center"}`
+            }
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-1.208-8.455-3.245M4.106 5.35A18.94 18.94 0 0112 3c2.392 0 4.743.766 6.697 2.228m-.258 5.922L21 13.255M4.106 5.35L3 6.068m18 0l-1.106-.718M12 9v6m-4.5 3h9M8.25 10.5L12 14.25 15.75 10.5"
+              ></path>
+            </svg>
+            {isSidebarOpen && (
+              <span className="font-medium whitespace-nowrap overflow-hidden">
+                Projects
+              </span>
+            )}
+          </NavLink>
+
+          <NavLink
+            to="/admin-users" // Example path, adjust as needed
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-blue-400"
+              } ${!isSidebarOpen && "justify-center"}`
+            }
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h2a2 2 0 002-2V8a2 2 0 00-2-2h-2M5 20h2a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2zm12-7l-4-4m0 0l-4 4m4-4v12"
+              ></path>
+            </svg>
+            {isSidebarOpen && (
+              <span className="font-medium whitespace-nowrap overflow-hidden">
+                Users
+              </span>
+            )}
+          </NavLink>
+
+          <NavLink
+            to="/admin-settings" // Example path, adjust as needed
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-blue-400"
+              } ${!isSidebarOpen && "justify-center"}`
+            }
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.53-.32 1.139-.757 1.724-1.065z"
+              ></path>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              ></path>
+            </svg>
+            {isSidebarOpen && (
+              <span className="font-medium whitespace-nowrap overflow-hidden">
+                Settings
+              </span>
+            )}
+          </NavLink>
+        </nav>
+        <div className="mt-auto pt-6 w-full">
+          <button
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-red-400 transition-colors duration-200 w-full ${
+              !isSidebarOpen && "justify-center"
+            }`}
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              ></path>
+            </svg>
+            {isSidebarOpen && (
+              <span className="font-medium whitespace-nowrap overflow-hidden">
+                Logout
+              </span>
+            )}
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-6 flex flex-col transition-all duration-300 overflow-y-auto">
+        <div className="max-w-7xl mx-auto w-full flex-grow">
+          {/* Header and Search */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Admin Dashboard
+              <h1 className="text-3xl font-bold text-white">
+                Project Dashboard
               </h1>
-              <p className="text-gray-600 mt-1">
-                Manage student project submissions
+              <p className="text-gray-400">
+                Manage and review submitted projects
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="bg-blue-100 px-4 py-2 rounded-lg">
-                <span className="text-blue-800 font-semibold">
-                  {pendingMessages.length} Pending
-                </span>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search projects..."
+                  className="pl-10 pr-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <svg
+                  className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
               </div>
-              <div className="bg-green-100 px-4 py-2 rounded-lg">
-                <span className="text-green-800 font-semibold">
-                  {approvedProjects.length} Approved
-                </span>
-              </div>
+              <Link
+                to="/upload-project"
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Upload Project
+              </Link>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-            {["pending", "approved", "rejected"].map((tab) => (
+          {/* Tabs */}
+          <div className="flex border-b border-gray-700 mb-6">
+            {["all", "pending", "approved", "rejected"].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2 rounded-md font-medium transition-all ${
+                className={`px-4 py-2 text-sm font-medium relative ${
                   activeTab === tab
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "text-blue-400"
+                    : "text-gray-400 hover:text-gray-200"
                 }`}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setCurrentPage(1); // Reset to first page on tab change
+                }}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {tab === "pending" && ` (${pendingMessages.length})`}
-                {tab === "approved" && ` (${approvedProjects.length})`}
-                {tab === "rejected" && ` (${rejectedProjects.length})`}
+                {activeTab === tab && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"
+                    layoutId="underline"
+                  />
+                )}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Filter */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-3">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category === "all" ? "All Categories" : category}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {isLoading && (
-          <div className="flex justify-center my-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-
-        {!isLoading && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Messages List */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6 border-b">
-                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                    <MessageSquare className="w-6 h-6 mr-2 text-blue-600" />
-                    {activeTab === "pending" && "Pending Submissions"}
-                    {activeTab === "approved" && "Approved Projects"}
-                    {activeTab === "rejected" && "Rejected Projects"}
-                  </h2>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Total Projects
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {projects.length}
+                  </p>
                 </div>
-
-                <div className="divide-y divide-gray-100">
-                  {/* Pending Messages */}
-                  {activeTab === "pending" &&
-                    filteredPendingMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        onClick={() => setSelectedMessage(message)}
-                        className={`p-6 cursor-pointer transition-all hover:bg-blue-50 ${
-                          selectedMessage?.id === message.id
-                            ? "bg-blue-50 border-l-4 border-blue-500"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {message.studentName || "Unknown Student"}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  ID: {message.studentId || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              {message.title}
-                            </h4>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                              {message.description}
-                            </p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span className="bg-gray-100 px-2 py-1 rounded">
-                                {message.category || "Uncategorized"}
-                              </span>
-                              <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                {new Date(message.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <Clock className="w-5 h-5 text-amber-500 mt-1" />
-                        </div>
-                      </div>
-                    ))}
-
-                  {/* Approved Projects */}
-                  {activeTab === "approved" &&
-                    filteredApprovedProjects.map((project) => (
-                      <div key={project.id} className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {project.studentName || "Unknown Student"}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  ID: {project.studentId || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              {project.title}
-                            </h4>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span className="bg-gray-100 px-2 py-1 rounded">
-                                {project.category || "Uncategorized"}
-                              </span>
-                              <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Approved:{" "}
-                                {new Date(project.updatedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
-                        </div>
-                      </div>
-                    ))}
-
-                  {/* Rejected Projects */}
-                  {activeTab === "rejected" &&
-                    filteredRejectedProjects.map((project) => (
-                      <div key={project.id} className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {project.studentName || "Unknown Student"}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  ID: {project.studentId || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              {project.title}
-                            </h4>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
-                              <span className="bg-gray-100 px-2 py-1 rounded">
-                                {project.category || "Uncategorized"}
-                              </span>
-                              <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Rejected:{" "}
-                                {new Date(project.updatedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            {project.rejectionReason && (
-                              <div className="bg-red-50 p-3 rounded-lg">
-                                <p className="text-sm text-red-800">
-                                  <strong>Reason:</strong>{" "}
-                                  {project.rejectionReason}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          <XCircle className="w-6 h-6 text-red-500 mt-1" />
-                        </div>
-                      </div>
-                    ))}
-
-                  {/* Empty States */}
-                  {activeTab === "pending" &&
-                    filteredPendingMessages.length === 0 && (
-                      <div className="p-12 text-center">
-                        <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No pending submissions
-                        </h3>
-                        <p className="text-gray-500">
-                          All submissions have been reviewed!
-                        </p>
-                      </div>
-                    )}
-
-                  {activeTab === "approved" &&
-                    filteredApprovedProjects.length === 0 && (
-                      <div className="p-12 text-center">
-                        <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No approved projects
-                        </h3>
-                        <p className="text-gray-500">
-                          Start reviewing submissions to build your approved
-                          projects list!
-                        </p>
-                      </div>
-                    )}
-
-                  {activeTab === "rejected" &&
-                    filteredRejectedProjects.length === 0 && (
-                      <div className="p-12 text-center">
-                        <XCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No rejected projects
-                        </h3>
-                        <p className="text-gray-500">
-                          All submissions met the requirements!
-                        </p>
-                      </div>
-                    )}
+                <div className="bg-blue-700/30 p-3 rounded-full">
+                  <svg
+                    className="w-7 h-7 text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
                 </div>
               </div>
             </div>
 
-            {/* Action Panel */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6 border-b">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Review Actions
-                  </h3>
+            <div className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 hover:border-amber-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Pending Review
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {projects.filter((p) => !p.status).length}
+                  </p>
                 </div>
+                <div className="bg-amber-700/30 p-3 rounded-full">
+                  <svg
+                    className="w-7 h-7 text-amber-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-                {selectedMessage ? (
-                  <div className="p-6">
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-gray-900 mb-2">
-                        {selectedMessage.title}
-                      </h4>
-                      <div className="space-y-3 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-700">
-                            Student:
+            <div className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 hover:border-green-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">Approved</p>
+                  <p className="text-3xl font-bold text-white">
+                    {projects.filter((p) => p.status === "approved").length}
+                  </p>
+                </div>
+                <div className="bg-green-700/30 p-3 rounded-full">
+                  <svg
+                    className="w-7 h-7 text-green-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 hover:border-red-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">Rejected</p>
+                  <p className="text-3xl font-bold text-white">
+                    {projects.filter((p) => p.status === "rejected").length}
+                  </p>
+                </div>
+                <div className="bg-red-700/30 p-3 rounded-full">
+                  <svg
+                    className="w-7 h-7 text-red-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Projects Grid */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-400"></div>
+            </div>
+          ) : paginatedProjects.length === 0 ? ( // Use paginatedProjects here
+            <div className="bg-gray-800 rounded-lg shadow-xl p-8 text-center border border-gray-700">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 className="mt-2 text-lg font-medium text-white">
+                No projects found
+              </h3>
+              <p className="mt-1 text-gray-400">
+                {activeTab === "all"
+                  ? "No projects have been submitted yet."
+                  : `No ${activeTab} projects found.`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedProjects.map(
+                  (
+                    project // Use paginatedProjects here
+                  ) => (
+                    <motion.div
+                      key={project.id}
+                      className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700 hover:shadow-2xl hover:border-blue-600 transition-all duration-300 flex flex-col group relative"
+                      whileHover={{ y: -5 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {/* Image Section */}
+                      <div
+                        className="relative h-48 bg-gray-700 overflow-hidden cursor-pointer"
+                        onClick={() => setSelectedImage(project.imageUrl)}
+                      >
+                        {project.imageUrl ? (
+                          <img
+                            src={`http://127.0.0.1:3001/${project.imageUrl}`}
+                            alt={project.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "https://placehold.co/600x400/374151/D1D5DB?text=Image+Not+Found";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-700 text-gray-500">
+                            <svg
+                              className="w-12 h-12"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-gray-900/90 to-transparent"></div>
+                        <div className="absolute top-2 right-2">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              !project.status
+                                ? "bg-amber-500 text-white"
+                                : project.status === "approved"
+                                ? "bg-green-500 text-white"
+                                : "bg-red-500 text-white"
+                            }`}
+                          >
+                            {!project.status
+                              ? "Pending"
+                              : project.status.charAt(0).toUpperCase() +
+                                project.status.slice(1)}
                           </span>
-                          <p className="text-gray-600">
-                            {selectedMessage.studentName} (
-                            {selectedMessage.studentId})
-                          </p>
                         </div>
-                        <div>
-                          <span className="font-medium text-gray-700">
-                            Category:
-                          </span>
-                          <p className="text-gray-600">
-                            {selectedMessage.category}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">
-                            Submitted:
-                          </span>
-                          <p className="text-gray-600">
-                            {new Date(selectedMessage.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">
-                            Description:
-                          </span>
-                          <p className="text-gray-600 mt-1">
-                            {selectedMessage.description}
-                          </p>
-                        </div>
-                        {selectedMessage.githubLink && (
-                          <div>
-                            <span className="font-medium text-gray-700">
-                              GitHub:
+                      </div>
+
+                      {/* Content Section */}
+                      <div className="p-5 flex flex-col flex-grow">
+                        <div className="flex justify-between items-start mb-3">
+                          <h2 className="text-xl font-bold text-white line-clamp-1">
+                            {project.title}
+                          </h2>
+                          {project.forSale && (
+                            <span className="bg-purple-600 text-white text-sm font-medium px-3 py-1 rounded-full whitespace-nowrap ml-2">
+                              Ksh {project.price}
                             </span>
-                            <p className="text-gray-600">
-                              <a
-                                href={selectedMessage.githubLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-300 mb-4 line-clamp-3 flex-grow">
+                          {project.description}
+                        </p>
+
+                        {/* Links */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <a
+                            href={project.githubLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors font-medium text-gray-200"
+                          >
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                            </svg>
+                            GitHub
+                          </a>
+                          {project.demoLink && (
+                            <a
+                              href={project.demoLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors font-medium text-white"
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                               >
-                                View on GitHub
-                              </a>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                                />
+                              </svg>
+                              Live Demo
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Review reason if exists */}
+                        {project.reviewReason && (
+                          <div className="bg-gray-700 p-3 rounded-lg mt-auto border border-gray-600">
+                            <p className="text-xs font-medium text-gray-400 mb-1">
+                              Review Note:
+                            </p>
+                            <p className="text-xs text-gray-200 line-clamp-2">
+                              {project.reviewReason}
                             </p>
                           </div>
                         )}
-                      </div>
-                    </div>
 
-                    <div className="space-y-4">
-                      <button
-                        onClick={() => handleApprove(selectedMessage.id)}
-                        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                        disabled={isLoading}
-                      >
-                        <CheckCircle className="w-5 h-5" />
-                        <span>Approve Project</span>
-                      </button>
-
-                      <div>
-                        <textarea
-                          placeholder="Provide reason for rejection (required)"
-                          className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                          rows="3"
-                          id={`rejection-reason-${selectedMessage.id}`}
-                        />
-                        <button
-                          onClick={() => {
-                            const reason = document.getElementById(
-                              `rejection-reason-${selectedMessage.id}`
-                            ).value;
-                            handleReject(selectedMessage.id, reason);
-                          }}
-                          className="w-full mt-2 bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2"
-                          disabled={isLoading}
-                        >
-                          <XCircle className="w-5 h-5" />
-                          <span>Reject Project</span>
-                        </button>
+                        {/* Approve/Reject buttons */}
+                        {!project.status && (
+                          <div className="flex gap-3 mt-4">
+                            <button
+                              onClick={() => handleApprove(project.id)}
+                              className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg transition-colors font-semibold shadow-md"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectPrompt(project.id)}
+                              className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-2 rounded-lg transition-colors font-semibold shadow-md"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                              Reject
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center">
-                    <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      Select a Submission
-                    </h4>
-                    <p className="text-gray-500 text-sm">
-                      Choose a pending submission from the list to review and take
-                      action.
-                    </p>
-                  </div>
+                    </motion.div>
+                  )
                 )}
               </div>
 
-              {/* Stats */}
-              <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Quick Stats
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Submissions</span>
-                    <span className="font-semibold text-gray-900">
-                      {pendingMessages.length +
-                        approvedProjects.length +
-                        rejectedProjects.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Approval Rate</span>
-                    <span className="font-semibold text-green-600">
-                      {approvedProjects.length + rejectedProjects.length > 0
-                        ? Math.round(
-                            (approvedProjects.length /
-                              (approvedProjects.length +
-                                rejectedProjects.length)) *
-                              100
-                          )
-                        : 0}
-                      %
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Pending Review</span>
-                    <span className="font-semibold text-amber-600">
-                      {pendingMessages.length}
-                    </span>
-                  </div>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                  <button
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-gray-300">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+              )}
+            </>
+          )}
+        </div>
+        {/* Rejection Reason Modal */}
+        <AnimatePresence>
+          {selectedImage && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedImage(null)} // Close on background click
+            >
+              <motion.img
+                src={`http://127.0.0.1:3001/${selectedImage}`}
+                alt="Full screen project image"
+                className="max-w-full max-h-full object-contain"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the image
+              />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 text-white bg-gray-800 rounded-full p-2 hover:bg-gray-700 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </motion.div>
+          )}
+          {rejectionInput.show && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="bg-gray-800 p-6 rounded-xl w-full max-w-md shadow-xl border border-gray-700 text-gray-100"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-white">
+                    Reject Project
+                  </h3>
+                  <button
+                    onClick={() =>
+                      setRejectionInput({ show: false, id: null, reason: "" })
+                    }
+                    className="text-gray-400 hover:text-gray-200 p-1 rounded-full hover:bg-gray-700 transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-sm text-gray-300 mb-4">
+                  Please provide a reason for rejecting this project. This
+                  feedback will be visible to the submitter.
+                </p>
+                <textarea
+                  rows={4}
+                  placeholder="Enter detailed reason for rejection..."
+                  className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mb-4"
+                  value={rejectionInput.reason}
+                  onChange={(e) =>
+                    setRejectionInput((prev) => ({
+                      ...prev,
+                      reason: e.target.value,
+                    }))
+                  }
+                ></textarea>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() =>
+                      setRejectionInput({ show: false, id: null, reason: "" })
+                    }
+                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitRejection}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors"
+                  >
+                    Submit Rejection
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+          {selectedImage && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedImage(null)} // Close on background click
+            >
+              <motion.img
+                src={`http://127.0.0.1:3001/${selectedImage}`}
+                alt="Full screen project image"
+                className="max-w-full max-h-full object-contain"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the image
+              />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 text-white bg-gray-800 rounded-full p-2 hover:bg-gray-700 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 };

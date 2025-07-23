@@ -468,10 +468,12 @@
 //   </>
 // );
 
+// SignupForm.jsx
+"use client";
 import React, { useState } from "react";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { cn } from "@/lib/utils";
+import { Label } from "../components/ui/label"; // Assuming these are correctly imported
+import { Input } from "../components/ui/input"; // Assuming these are correctly imported
+import { cn } from "@/lib/utils"; // Assuming this utility function is correctly imported
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -541,6 +543,7 @@ export default function SignupForm() {
           email,
           password,
           role,
+          // Assuming these fields are optional for registration or will be handled later
           bio: "",
           github: "",
           linkedin: "",
@@ -552,12 +555,18 @@ export default function SignupForm() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Signup successful! Redirecting to login...");
-        navigate("/login");
+        toast.success("Signup successful! Please log in."); // Changed message
+        // In a real application, after successful registration, you'd typically
+        // redirect to a login page or directly log the user in.
+        // If your backend automatically logs in and returns a token, store it here.
+        // Example: localStorage.setItem("token", data.access_token);
+        // And then navigate to dashboard.
+        navigate("/login"); // Redirect to login page after signup
       } else {
         toast.error(data.msg || "Signup failed.");
       }
     } catch (err) {
+      console.error("Signup error:", err);
       toast.error("Server error. Please try again.");
     } finally {
       setLoading(false);
