@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Import useRef
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // Assuming this utility correctly merges class names
 import UploadProject from "./UploadProject";
+import { Home } from "lucide-react"; // Make sure Home is imported from lucide-react or wherever you get it
 import {
   IconBrandTabler,
   IconSettings,
@@ -19,6 +20,7 @@ import {
 
 export function StudentDashBoard() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null); // Ref for the hidden file input
   const [projects, setProjects] = useState([
     {
       id: 1,
@@ -56,6 +58,9 @@ export function StudentDashBoard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(true);
+  const [profileImage, setProfileImage] = useState(
+    "https://randomuser.me/api/portraits/men/32.jpg"
+  ); // State for profile image
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -69,7 +74,7 @@ export function StudentDashBoard() {
 
       try {
         setLoading(true);
-        const res = await fetch("http://127.0.0.1:5000/api/user/profile", {
+        const res = await fetch("http://127.0.0.1:5555/api/user/profile", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -88,6 +93,10 @@ export function StudentDashBoard() {
 
         const data = await res.json();
         setUserName(data.username || data.name || "Student");
+        // Assuming your user data might return a profile_picture URL
+        if (data.profile_picture) {
+          setProfileImage(data.profile_picture);
+        }
       } catch (err) {
         console.error("Error fetching user data:", err);
         setError("Failed to load user data. Redirecting to login...");
@@ -102,10 +111,37 @@ export function StudentDashBoard() {
 
   const handleProjectUpload = (newProject) => {
     setProjects((prev) => [newProject, ...prev]);
-    setActiveLink("Dashboard");
+    setActiveLink("Dashboard"); // Ensure Dashboard is active after upload
+  };
+
+  // Function to trigger the hidden file input click
+  const handleImageClick = () => {
+    fileInputRef.current.click();
+  };
+
+  // Function to handle file selection
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Create a URL for the selected file and update the image state for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+
+      // Here you would typically send the 'file' object to your backend for actual upload
+      console.log("Selected file for upload:", file);
+      // Example: uploadProfilePicture(file);
+    }
   };
 
   const links = [
+    {
+      label: "Home",
+      href: "/",
+      icon: <Home className="h-5 w-5 shrink-0" />,
+    },
     {
       label: "Dashboard",
       href: "/dashboard",
@@ -207,9 +243,12 @@ export function StudentDashBoard() {
                 onClick={() => setActiveLink(link.label)}
                 className={cn(
                   "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  activeLink === link.label
+                  // Conditional styling for the background of the active 'Home' link
+                  link.label === "Home" && activeLink === "Home"
                     ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-neutral-700",
+                    : activeLink === link.label // For other active links, only change text color
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-neutral-700", // Inactive styles
                   !open && "justify-center"
                 )}
               >
@@ -238,11 +277,22 @@ export function StudentDashBoard() {
         </div>
         <div className="p-4 border-t border-gray-200 dark:border-neutral-700">
           <div className="flex items-center space-x-3">
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef} // Attach the ref
+              onChange={handleFileChange} // Handle file selection
+              className="hidden" // Hide the default input
+              accept="image/*" // Restrict to image files
+            />
+
             <div className="relative">
+              {/* Image that triggers file input */}
               <img
-                src="https://randomuser.me/api/portraits/men/32.jpg"
-                className="h-9 w-9 rounded-full border-2 border-white dark:border-neutral-700"
-                alt="User"
+                src={profileImage} // Use the state variable for the image source
+                className="h-9 w-9 rounded-full border-2 border-white dark:border-neutral-700 object-cover cursor-pointer" // Added object-cover and cursor-pointer
+                alt="User Profile"
+                onClick={handleImageClick} // On click, trigger the hidden file input
               />
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-neutral-700"></span>
             </div>

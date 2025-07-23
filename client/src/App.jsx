@@ -70,8 +70,6 @@ function App() {
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/contact-me" element={<ContactMe />} />
-
-        {/* ✅ Nested under /dashboard */}
         <Route path="/dashboard" element={<StudentDashBoard />}>
           <Route path="upload-project" element={<UploadProject />} />
         </Route>
