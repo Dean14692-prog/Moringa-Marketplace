@@ -57,7 +57,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 # This is placed early to ensure it acts as a global middleware
 # for all requests, including preflights, before they hit blueprints.
 CORS(app, resources={r"/api/*": {
-    "origins": "http://localhost:5173", # <--- *** CORRECTED THIS PORT ***
+    "origins": "http://localhost:5173", 
     "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"], # Explicitly allow all methods you use
     "headers": ["Content-Type", "Authorization"], # Essential for JWT and JSON bodies
     "supports_credentials": True # Crucial if you're sending JWT tokens or cookies
