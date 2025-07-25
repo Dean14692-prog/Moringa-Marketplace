@@ -126,7 +126,8 @@ class Project(db.Model, SerializerMixin):
     price = db.Column(db.Float, default=0.0)
     uploaded_by = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False) # Store username
     isApproved = db.Column(db.Boolean, default=False)
-    status_changed_by = db.Column(db.String(80)) # Username of admin who changed status
+    status_changed_by = db.Column(db.String(80)) 
+    review_reason = db.Column(db.Text, nullable=True) # ADDED THIS LINE
     file = db.Column(db.String(255)) # Path to uploaded file/image
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
@@ -152,6 +153,7 @@ class Project(db.Model, SerializerMixin):
             'uploaded_by': self.uploaded_by,
             'isApproved': self.isApproved,
             'status_changed_by': self.status_changed_by,
+            'review_reason': self.review_reason, # ADDED THIS LINE
             'file': self.file,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

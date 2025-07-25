@@ -13,21 +13,28 @@ function UploadProject({ onProjectUpload }) {
     title: "",
     description: "",
     githubLink: "",
-    demoLink: "", // Corresponds to livePreviewUrl
-    forSale: false, // Corresponds to isForSale
-    price: "", // Corresponds to price
-    file: null, // Corresponds to file
+    livePreviewUrl: "", // Corresponds to live_preview_url in backend
+    isForSale: false, // Corresponds to isForSale in backend
+    price: "", // Corresponds to price in backend
+    zipFile: null, // Corresponds to zipFile in backend for the actual file upload
     category: "web", // New field
     techStack: "", // New field
+    // Removed 'file' and 'demoLink' from state to align with backend keys more directly
+    // and to avoid confusion. 'zipFile' will hold the actual file object.
   });
 
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null); // For image preview
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [collaborators, setCollaborators] = useState([]);
+  const [newCollaborator, setNewCollaborator] = useState({
+    name: "",
+    email: "",
+  });
 
   // Redirect to login if token is missing
   useEffect(() => {
-    const token = localStorage.getItem("access_token"); // Using access_token as per original
+    const token = localStorage.getItem("access_token");
     if (!token) {
       toast.warning("You must log in to upload a project.");
       navigate("/login");
@@ -40,12 +47,14 @@ function UploadProject({ onProjectUpload }) {
 
     if (type === "file") {
       const file = files[0];
-      setFormData((prev) => ({ ...prev, file }));
+      setFormData((prev) => ({ ...prev, [name]: file })); // Use [name] here for 'zipFile'
+      // If you want to show a preview only for image files within the zip, you can
+      // refine this logic. For now, this is for a general file preview if applicable.
       if (file?.type?.startsWith("image/")) {
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
       } else {
-        setPreviewUrl(null);
+        setPreviewUrl(null); // Clear preview if not an image
       }
     } else {
       setFormData((prev) => ({
@@ -55,24 +64,47 @@ function UploadProject({ onProjectUpload }) {
     }
   };
 
-  // Handle submit click
+  const handleAddCollaborator = () => {
+    if (
+      newCollaborator.name.trim() !== "" &&
+      newCollaborator.email.trim() !== ""
+    ) {
+      setCollaborators([...collaborators, newCollaborator]);
+      setNewCollaborator({ name: "", email: "" });
+    } else {
+      toast.error("Please enter both name and email for the collaborator.");
+    }
+  };
+
+  const handleRemoveCollaborator = (index) => {
+    setCollaborators(collaborators.filter((_, i) => i !== index));
+  };
+
+  // Handle submit click (initial validation and confirmation)
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!formData.title || !formData.description || !formData.githubLink) {
-      toast.error("Please fill in all required fields");
+      toast.error(
+        "Please fill in all required fields (Title, Description, GitHub Link)."
+      );
       return;
     }
 
-    if (formData.forSale && !formData.price) {
-      toast.error("Please set a price for your project");
+    if (
+      formData.isForSale &&
+      (formData.price === "" || parseFloat(formData.price) <= 0)
+    ) {
+      toast.error(
+        "Please set a valid price for your project if it's for sale."
+      );
       return;
     }
 
     setShowConfirm(true);
   };
 
-  // Confirm and upload project
+  // Confirm and upload project (final submission)
   const handleConfirmUpload = async () => {
     setIsLoading(true);
 
@@ -86,15 +118,17 @@ function UploadProject({ onProjectUpload }) {
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);
-    data.append("github_link", formData.githubLink);
-    data.append("live_preview_url", formData.demoLink || "");
-    data.append("isForSale", formData.forSale.toString());
+    data.append("githubLink", formData.githubLink); // Correct: Matches backend 'githubLink'
+    data.append("livePreviewUrl", formData.livePreviewUrl || ""); // Correct: Matches backend 'livePreviewUrl'
+    data.append("isForSale", formData.isForSale.toString()); // Correct: Matches backend 'isForSale'
     data.append("price", formData.price || "0");
-    data.append("category", formData.category); // Appending new field
-    data.append("tech_stack", formData.techStack); // Appending new field
+    data.append("category", formData.category);
+    data.append("techStack", formData.techStack); // Correct: Matches backend 'techStack'
+    data.append("collaborators", JSON.stringify(collaborators)); // Send collaborators as JSON string
 
-    if (formData.file) {
-      data.append("file", formData.file);
+    if (formData.zipFile) {
+      // Using 'zipFile' for the actual file input
+      data.append("zipFile", formData.zipFile); // Correct: Matches backend 'zipFile' for the file itself
     }
 
     try {
@@ -102,6 +136,8 @@ function UploadProject({ onProjectUpload }) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          // Important: Do NOT set Content-Type header when sending FormData,
+          // the browser sets it automatically with the correct boundary.
         },
         body: data,
       });
@@ -121,17 +157,20 @@ function UploadProject({ onProjectUpload }) {
       const result = await res.json();
       toast.success("Project uploaded successfully!");
       setFormData({
+        // Reset form after successful upload
         title: "",
         description: "",
         githubLink: "",
-        demoLink: "",
-        forSale: false,
+        livePreviewUrl: "",
+        isForSale: false,
         price: "",
-        file: null,
+        zipFile: null,
         category: "web",
         techStack: "",
       });
       setPreviewUrl(null);
+      setCollaborators([]); // Clear collaborators
+      setNewCollaborator({ name: "", email: "" });
       setShowConfirm(false);
 
       if (onProjectUpload) {
@@ -148,7 +187,7 @@ function UploadProject({ onProjectUpload }) {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black px-4 py-8 text-sm relative">
-      {/* Back to dashboard */}
+      {/* Back to dashboard
       <div className="absolute top-4 left-4">
         <Link
           to="/dashboard"
@@ -164,7 +203,7 @@ function UploadProject({ onProjectUpload }) {
           </svg>
           <span>Home</span>
         </Link>
-      </div>
+      </div> */}
 
       <h1 className="text-xl font-bold mb-4 text-white">Upload New Project</h1>
 
@@ -203,9 +242,9 @@ function UploadProject({ onProjectUpload }) {
           <Label htmlFor="githubLink">GitHub Link *</Label>
           <Input
             id="githubLink"
-            name="githubLink"
+            name="githubLink" // Name must match formData key and backend expected key
             type="url"
-            placeholder="https://github.com/..."
+            placeholder="https://github.com/your-project"
             value={formData.githubLink}
             onChange={handleChange}
             required
@@ -214,13 +253,13 @@ function UploadProject({ onProjectUpload }) {
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label htmlFor="demoLink">Live Preview URL (Optional)</Label>
+          <Label htmlFor="livePreviewUrl">Live Preview URL (Optional)</Label>
           <Input
-            id="demoLink"
-            name="demoLink"
+            id="livePreviewUrl"
+            name="livePreviewUrl" // Name must match formData key and backend expected key
             type="url"
-            placeholder="https://demo.com"
-            value={formData.demoLink}
+            placeholder="https://your-live-demo.com"
+            value={formData.livePreviewUrl}
             onChange={handleChange}
             className="bg-zinc-900 text-white"
           />
@@ -233,21 +272,21 @@ function UploadProject({ onProjectUpload }) {
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white"
+            className="bg-zinc-900 text-white rounded px-3 py-2 w-full"
           >
             <option value="web">Web Development</option>
             <option value="mobile">Mobile Development</option>
-            <option value="data_science">Data Science</option>
-            <option value="ai_ml">AI/ML</option>
+            <option value="data">Data Science/AI</option>
+            <option value="design">UI/UX Design</option>
             <option value="other">Other</option>
           </select>
         </LabelInputContainer>
 
         <LabelInputContainer>
-          <Label htmlFor="techStack">Tech Stack (comma-separated)</Label>
+          <Label htmlFor="techStack">Tech Stack (Comma-separated)</Label>
           <Input
             id="techStack"
-            name="techStack"
+            name="techStack" // Name must match formData key and backend expected key
             type="text"
             placeholder="React, Flask, PostgreSQL"
             value={formData.techStack}
@@ -256,159 +295,165 @@ function UploadProject({ onProjectUpload }) {
           />
         </LabelInputContainer>
 
-        <LabelInputContainer>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              name="forSale"
-              checked={formData.forSale}
-              onChange={handleChange}
-              className="w-4 h-4"
+        {/* Collaborators Section */}
+        <div className="space-y-2">
+          <Label>Collaborators (Optional)</Label>
+          {collaborators.map((collab, index) => (
+            <div
+              key={index}
+              className="flex items-center space-x-2 text-sm bg-zinc-800 p-2 rounded"
+            >
+              <span className="flex-grow">
+                {collab.name} ({collab.email})
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemoveCollaborator(index)}
+                className="text-red-400 hover:text-red-600 transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+          <div className="flex space-x-2">
+            <Input
+              type="text"
+              placeholder="Name"
+              value={newCollaborator.name}
+              onChange={(e) =>
+                setNewCollaborator({ ...newCollaborator, name: e.target.value })
+              }
+              className="flex-grow bg-zinc-900 text-white"
             />
-            <span>Mark as for sale</span>
-          </label>
-        </LabelInputContainer>
+            <Input
+              type="email"
+              placeholder="Email"
+              value={newCollaborator.email}
+              onChange={(e) =>
+                setNewCollaborator({
+                  ...newCollaborator,
+                  email: e.target.value,
+                })
+              }
+              className="flex-grow bg-zinc-900 text-white"
+            />
+            <button
+              type="button"
+              onClick={handleAddCollaborator}
+              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </div>
 
-        {formData.forSale && (
+        <div className="flex items-center space-x-2">
+          <input
+            id="isForSale"
+            name="isForSale" // Name must match formData key and backend expected key
+            type="checkbox"
+            checked={formData.isForSale}
+            onChange={handleChange}
+            className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out bg-zinc-800 border-zinc-700 rounded"
+          />
+          <Label htmlFor="isForSale">Mark as for sale?</Label>
+        </div>
+
+        {formData.isForSale && (
           <LabelInputContainer>
-            <Label htmlFor="price">Price (Ksh) *</Label>
+            <Label htmlFor="price">Price (KSH) *</Label>
             <Input
               id="price"
               name="price"
               type="number"
-              placeholder="e.g. 500"
+              placeholder="e.g., 5000"
               value={formData.price}
               onChange={handleChange}
-              required
+              required={formData.isForSale}
               className="bg-zinc-900 text-white"
-              min="0"
             />
           </LabelInputContainer>
         )}
 
         <LabelInputContainer>
-          <Label htmlFor="file">Screenshot / File</Label>
+          <Label htmlFor="zipFile">Project File (ZIP only) *</Label>
           <Input
-            id="file"
+            id="zipFile"
+            name="zipFile" // Name must match formData key and backend expected key for the file
             type="file"
-            name="file"
-            accept="image/*,application/pdf"
+            accept=".zip" // Suggest only zip files
             onChange={handleChange}
-            className="bg-zinc-900 text-white file:text-white file:bg-amber-500 file:border-0 file:rounded file:px-3 file:py-1 file:mr-3"
+            required
+            className="bg-zinc-900 text-white cursor-pointer file:text-white file:bg-blue-600 file:border-none file:px-3 file:py-1 file:rounded file:cursor-pointer hover:file:bg-blue-700"
           />
           {previewUrl && (
-            <div className="mt-2">
-              <p className="text-xs text-blue-300 mb-1">Preview:</p>
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="w-full max-h-40 object-contain rounded border"
-              />
-            </div>
+            <img
+              src={previewUrl}
+              alt="File preview"
+              className="mt-2 max-w-full h-auto rounded"
+            />
           )}
         </LabelInputContainer>
 
-        <motion.button
+        <button
+          className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
           type="submit"
-          className="relative flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow font-semibold transition w-full"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          disabled={isLoading}
         >
-          Upload Project
-        </motion.button>
+          {isLoading ? "Uploading..." : "Upload Project"} &rarr;
+          <BottomGradient />
+        </button>
       </form>
 
+      {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 p-6 rounded-lg max-w-md w-full text-white space-y-4">
-            <h2 className="text-lg font-bold">Confirm Upload</h2>
-            <div className="space-y-2">
-              <p>
-                <strong>Title:</strong> {formData.title}
-              </p>
-              <p>
-                <strong>Description:</strong> {formData.description}
-              </p>
-              <p>
-                <strong>GitHub:</strong> {formData.githubLink}
-              </p>
-              {formData.demoLink && (
-                <p>
-                  <strong>Live Preview:</strong> {formData.demoLink}
-                </p>
-              )}
-              {formData.category && (
-                <p>
-                  <strong>Category:</strong> {formData.category}
-                </p>
-              )}
-              {formData.techStack && (
-                <p>
-                  <strong>Tech Stack:</strong> {formData.techStack}
-                </p>
-              )}
-              {formData.forSale && (
-                <p>
-                  <strong>Price:</strong> Ksh {formData.price}
-                </p>
-              )}
-              {previewUrl && (
-                <div className="mt-2">
-                  <p className="text-xs text-blue-300 mb-1">Preview:</p>
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full max-h-40 object-contain rounded border"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="bg-zinc-900 p-6 rounded-lg shadow-xl max-w-sm w-full text-white space-y-4"
+          >
+            <h2 className="text-xl font-bold">Confirm Upload</h2>
+            <p>Are you sure you want to upload this project?</p>
+            <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600 transition"
+                className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600 transition"
                 disabled={isLoading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmUpload}
-                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 transition flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    Uploading...
-                  </>
-                ) : (
-                  "Confirm & Upload"
-                )}
+                {isLoading ? "Uploading..." : "Confirm"}
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
   );
 }
 
-export default UploadProject;
+const BottomGradient = () => {
+  return (
+    <>
+      <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
+      <span className="group-hover/btn:opacity-100 blur-sm block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
+    </>
+  );
+};
 
-const LabelInputContainer = ({ children, className }) => (
-  <div className={cn("flex flex-col w-full gap-1", className)}>{children}</div>
-);
+const LabelInputContainer = ({ children, className }) => {
+  return (
+    <div className={cn("flex flex-col space-y-2 w-full", className)}>
+      {children}
+    </div>
+  );
+};
+
+export default UploadProject;
