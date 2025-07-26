@@ -18,6 +18,8 @@ import {
   ChevronRight,
   BarChart2,
   RefreshCw,
+  FolderKanban,
+  ExternalLink,
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -274,6 +276,14 @@ const AdminDashboard = () => {
                   className="flex items-center text-indigo-200 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-indigo-600"
                 >
                   <ShoppingCart className="mr-3" /> Merchandise
+                </Link>
+              </li>
+              <li className="mb-4">
+                <Link
+                  to="/projects"
+                  className="flex items-center text-indigo-200 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-indigo-600"
+                >
+                  <FolderKanban className="mr-3" /> Projects
                 </Link>
               </li>
               <li className="mb-4">
@@ -608,17 +618,26 @@ const AdminDashboard = () => {
                       Project Links
                     </h4>
                     <div className="space-y-2">
-                      <a
-                        href={selectedMessage.githubLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center text-indigo-600 hover:text-indigo-800 hover:underline text-sm"
-                      >
-                        <Code className="w-4 h-4 mr-2" /> GitHub Repository
-                      </a>
-                      {selectedMessage.livePreviewUrl && (
+                      {selectedMessage.github_link && (
+                        <div className="mb-3">
+                          <h4 className="text-md font-semibold text-gray-200 flex items-center mb-1">
+                            <ExternalLink className="w-4 h-4 mr-2 text-gray-500" />{" "}
+                            GitHub Repository:
+                          </h4>
+
+                          <a
+                            href={selectedMessage.github_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline transition-colors break-words"
+                          >
+                            {selectedMessage.github_link}
+                          </a>
+                        </div>
+                      )}
+                      {selectedMessage.live_preview_url && ( // MODIFIED LINE
                         <a
-                          href={selectedMessage.livePreviewUrl}
+                          href={selectedMessage.live_preview_url} // MODIFIED LINE
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center text-indigo-600 hover:text-indigo-800 hover:underline text-sm"
