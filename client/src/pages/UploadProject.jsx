@@ -32,44 +32,57 @@ function UploadProject({ onProjectUpload }) {
     email: "",
   });
 
-  // Redirect to login if token is missing
+  // Redirect to login if token is not present
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      toast.warning("You must log in to upload a project.");
       navigate("/login");
+      toast.error("Please log in to upload a project.");
     }
   }, [navigate]);
 
-  // Handle form inputs
   const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
-    if (type === "file") {
-      const file = files[0];
-      setFormData((prev) => ({ ...prev, [name]: file })); // Use [name] here for 'zipFile'
-      // If you want to show a preview only for image files within the zip, you can
-      // refine this logic. For now, this is for a general file preview if applicable.
-      if (file?.type?.startsWith("image/")) {
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
-      } else {
-        setPreviewUrl(null); // Clear preview if not an image
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Basic validation for file type (e.g., zip, rar, tar.gz)
+      const allowedTypes = [
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/vnd.rar",
+        "application/x-tar",
+        "application/x-gzip",
+        "application/octet-stream", // Often used for various binary files, including zips
+      ];
+      if (
+        !allowedTypes.includes(file.type) &&
+        !file.name.endsWith(".zip") &&
+        !file.name.endsWith(".rar") &&
+        !file.name.endsWith(".tar.gz")
+      ) {
+        toast.error(
+          "Invalid file type. Please upload a zip, rar, or tar.gz file."
+        );
+        setFormData((prev) => ({ ...prev, zipFile: null }));
+        e.target.value = ""; // Clear the input
+        return;
       }
+      setFormData((prev) => ({ ...prev, zipFile: file }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      }));
+      setFormData((prev) => ({ ...prev, zipFile: null }));
     }
   };
 
   const handleAddCollaborator = () => {
-    if (
-      newCollaborator.name.trim() !== "" &&
-      newCollaborator.email.trim() !== ""
-    ) {
-      setCollaborators([...collaborators, newCollaborator]);
+    if (newCollaborator.name && newCollaborator.email) {
+      setCollaborators((prev) => [...prev, newCollaborator]);
       setNewCollaborator({ name: "", email: "" });
     } else {
       toast.error("Please enter both name and email for the collaborator.");
@@ -77,345 +90,358 @@ function UploadProject({ onProjectUpload }) {
   };
 
   const handleRemoveCollaborator = (index) => {
-    setCollaborators(collaborators.filter((_, i) => i !== index));
+    setCollaborators((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Handle submit click (initial validation and confirmation)
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!formData.title || !formData.description || !formData.githubLink) {
-      toast.error(
-        "Please fill in all required fields (Title, Description, GitHub Link)."
-      );
+    if (
+      !formData.title ||
+      !formData.description ||
+      !formData.category ||
+      !formData.techStack
+    ) {
+      toast.error("Please fill in all required project details.");
       return;
     }
-
     if (
       formData.isForSale &&
-      (formData.price === "" || parseFloat(formData.price) <= 0)
+      (isNaN(formData.price) || parseFloat(formData.price) <= 0)
     ) {
       toast.error(
-        "Please set a valid price for your project if it's for sale."
+        "Price must be a positive number if the project is for sale."
       );
       return;
     }
-
     setShowConfirm(true);
   };
 
-  // Confirm and upload project (final submission)
   const handleConfirmUpload = async () => {
     setIsLoading(true);
-
     const token = localStorage.getItem("access_token");
     if (!token) {
-      toast.error("Missing authentication. Please log in.");
+      toast.error("Authentication token not found. Please log in.");
       navigate("/login");
+      setIsLoading(false);
       return;
     }
 
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);
-    data.append("githubLink", formData.githubLink); // Correct: Matches backend 'githubLink'
-    data.append("livePreviewUrl", formData.livePreviewUrl || ""); // Correct: Matches backend 'livePreviewUrl'
-    data.append("isForSale", formData.isForSale.toString()); // Correct: Matches backend 'isForSale'
-    data.append("price", formData.price || "0");
+    data.append("github_link", formData.githubLink);
+    data.append("live_preview_url", formData.livePreviewUrl);
+    data.append("is_for_sale", formData.isForSale);
+    data.append("price", formData.isForSale ? parseFloat(formData.price) : 0);
     data.append("category", formData.category);
-    data.append("techStack", formData.techStack); // Correct: Matches backend 'techStack'
-    data.append("collaborators", JSON.stringify(collaborators)); // Send collaborators as JSON string
+    data.append("tech_stack", formData.techStack);
 
     if (formData.zipFile) {
-      // Using 'zipFile' for the actual file input
-      data.append("zipFile", formData.zipFile); // Correct: Matches backend 'zipFile' for the file itself
+      // Changed the key from "zip_file" to "file" to align with AdminDashboard's expectation
+      data.append("file", formData.zipFile);
     }
 
+    data.append("collaborators", JSON.stringify(collaborators)); // Send collaborators as JSON string
+
     try {
-      const res = await fetch("http://127.0.0.1:5555/api/projects/upload", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Important: Do NOT set Content-Type header when sending FormData,
-          // the browser sets it automatically with the correct boundary.
-        },
-        body: data,
-      });
-
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          toast.error("Session expired or unauthorized. Please log in again.");
-          setTimeout(() => navigate("/login"), 1500);
-          return;
+      const response = await fetch(
+        "http://127.0.0.1:5555/api/projects/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: data,
         }
-        const errData = await res.json();
-        throw new Error(errData.msg || "Upload failed");
-      }
+      );
 
-      const result = await res.json();
-      toast.success("Project uploaded successfully!");
-      setFormData({
-        // Reset form after successful upload
-        title: "",
-        description: "",
-        githubLink: "",
-        livePreviewUrl: "",
-        isForSale: false,
-        price: "",
-        zipFile: null,
-        category: "web",
-        techStack: "",
-      });
-      setPreviewUrl(null);
-      setCollaborators([]); // Clear collaborators
-      setNewCollaborator({ name: "", email: "" });
-      setShowConfirm(false);
-
-      if (onProjectUpload) {
-        onProjectUpload(result);
+      if (response.ok) {
+        const result = await response.json();
+        toast.success("Project uploaded successfully!");
+        setFormData({
+          title: "",
+          description: "",
+          githubLink: "",
+          livePreviewUrl: "",
+          isForSale: false,
+          price: "",
+          zipFile: null,
+          category: "web",
+          techStack: "",
+        });
+        setCollaborators([]);
+        setPreviewUrl(null);
+        setShowConfirm(false);
+        if (onProjectUpload) {
+          onProjectUpload(result);
+        }
+        navigate("/my-projects"); // Navigate to user's projects page
+      } else {
+        const errorData = await response.json();
+        const errorMessage =
+          errorData.message || errorData.msg || "Failed to upload project.";
+        toast.error(`Upload failed: ${errorMessage}`);
+        console.error("Upload error:", errorData);
       }
-      navigate("/dashboard");
     } catch (error) {
-      toast.error("Upload failed: " + error.message);
-      console.error("UPLOAD ERROR:", error);
+      toast.error("An error occurred during upload.");
+      console.error("Network or unexpected error:", error);
     } finally {
       setIsLoading(false);
+      setShowConfirm(false); // Close confirmation modal on completion
     }
   };
 
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black px-4 py-8 text-sm relative">
-      {/* Back to dashboard
-      <div className="absolute top-4 left-4">
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-2 text-xs text-white px-2 py-1 rounded hover:bg-zinc-800 transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            className="h-4 w-4"
-          >
-            <path d="M10.707 1.293a1 1 0 00-1.414 0l-8 8A1 1 0 002 10h1v7a1 1 0 001 1h5v-5h2v5h5a1 1 0 001-1v-7h1a1 1 0 00.707-1.707l-8-8z" />
-          </svg>
-          <span>Home</span>
-        </Link>
-      </div> */}
+  const categories = [
+    { value: "web", label: "Web Development" },
+    { value: "mobile", label: "Mobile Development" },
+    { value: "data", label: "Data Science" },
+    { value: "ui/ux", label: "UI/UX Design" },
+    { value: "ai/ml", label: "AI/ML" },
+    { value: "other", label: "Other" },
+  ];
 
-      <h1 className="text-xl font-bold mb-4 text-white">Upload New Project</h1>
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <header className="flex justify-between items-center mb-10">
+        <Link to="/" className="text-blue-400 hover:text-blue-300">
+          &larr; Back to Home
+        </Link>
+        <h1 className="text-3xl font-bold">Upload Your Project</h1>
+        <div></div> {/* For spacing */}
+      </header>
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 max-w-md w-full text-white"
+        className="max-w-3xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-700"
       >
-        <LabelInputContainer>
-          <Label htmlFor="title">Project Title *</Label>
-          <Input
-            id="title"
-            name="title"
-            placeholder="Enter title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            className="bg-zinc-900 text-white"
-          />
-        </LabelInputContainer>
+        <h2 className="text-2xl font-semibold mb-6 text-center">
+          Project Details
+        </h2>
 
-        <LabelInputContainer>
-          <Label htmlFor="description">Description *</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <LabelInputContainer>
+            <Label htmlFor="title">Project Title</Label>
+            <Input
+              id="title"
+              name="title"
+              placeholder="e.g., E-commerce Platform"
+              type="text"
+              value={formData.title}
+              onChange={handleChange}
+              required
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer>
+            <Label htmlFor="category">Category</Label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="mt-1 block w-full p-3 bg-zinc-700 border border-zinc-600 rounded-md text-white placeholder-zinc-400 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </LabelInputContainer>
+        </div>
+
+        <LabelInputContainer className="mb-6">
+          <Label htmlFor="description">Project Description</Label>
           <textarea
             id="description"
             name="description"
-            placeholder="Project description"
+            placeholder="A brief overview of your project, its features, and purpose..."
+            rows="5"
             value={formData.description}
             onChange={handleChange}
-            rows="3"
+            className="mt-1 block w-full p-3 bg-zinc-700 border border-zinc-600 rounded-md text-white placeholder-zinc-400 focus:ring-blue-500 focus:border-blue-500"
             required
-            className="bg-zinc-900 text-white rounded px-3 py-2"
-          />
+          ></textarea>
         </LabelInputContainer>
 
-        <LabelInputContainer>
-          <Label htmlFor="githubLink">GitHub Link *</Label>
-          <Input
-            id="githubLink"
-            name="githubLink" // Name must match formData key and backend expected key
-            type="url"
-            placeholder="https://github.com/your-project"
-            value={formData.githubLink}
-            onChange={handleChange}
-            required
-            className="bg-zinc-900 text-white"
-          />
-        </LabelInputContainer>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <LabelInputContainer>
+            <Label htmlFor="githubLink">GitHub Repository URL (Optional)</Label>
+            <Input
+              id="githubLink"
+              name="githubLink"
+              placeholder="https://github.com/your-project"
+              type="url"
+              value={formData.githubLink}
+              onChange={handleChange}
+            />
+          </LabelInputContainer>
 
-        <LabelInputContainer>
-          <Label htmlFor="livePreviewUrl">Live Preview URL (Optional)</Label>
-          <Input
-            id="livePreviewUrl"
-            name="livePreviewUrl" // Name must match formData key and backend expected key
-            type="url"
-            placeholder="https://your-live-demo.com"
-            value={formData.livePreviewUrl}
-            onChange={handleChange}
-            className="bg-zinc-900 text-white"
-          />
-        </LabelInputContainer>
+          <LabelInputContainer>
+            <Label htmlFor="livePreviewUrl">Live Preview URL (Optional)</Label>
+            <Input
+              id="livePreviewUrl"
+              name="livePreviewUrl"
+              placeholder="https://your-project-live.com"
+              type="url"
+              value={formData.livePreviewUrl}
+              onChange={handleChange}
+            />
+          </LabelInputContainer>
+        </div>
 
-        <LabelInputContainer>
-          <Label htmlFor="category">Category</Label>
-          <select
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="bg-zinc-900 text-white rounded px-3 py-2 w-full"
-          >
-            <option value="web">Web Development</option>
-            <option value="mobile">Mobile Development</option>
-            <option value="data">Data Science/AI</option>
-            <option value="design">UI/UX Design</option>
-            <option value="other">Other</option>
-          </select>
-        </LabelInputContainer>
-
-        <LabelInputContainer>
-          <Label htmlFor="techStack">Tech Stack (Comma-separated)</Label>
+        <LabelInputContainer className="mb-6">
+          <Label htmlFor="techStack">
+            Tech Stack (e.g., React, Node.js, Python, Flask, SQL)
+          </Label>
           <Input
             id="techStack"
-            name="techStack" // Name must match formData key and backend expected key
+            name="techStack"
+            placeholder="Comma-separated technologies used"
             type="text"
-            placeholder="React, Flask, PostgreSQL"
             value={formData.techStack}
             onChange={handleChange}
-            className="bg-zinc-900 text-white"
+            required
           />
+        </LabelInputContainer>
+
+        <LabelInputContainer className="mb-6">
+          <Label htmlFor="zipFile">Upload Project Zip File</Label>
+          <p className="text-sm text-zinc-400 mb-2">
+            Please compress your project files into a .zip, .rar, or .tar.gz
+            archive.
+          </p>
+          <Input
+            id="zipFile"
+            name="zipFile"
+            type="file"
+            accept=".zip,.rar,.tar.gz,application/zip,application/x-rar-compressed,application/gzip,application/x-tar"
+            onChange={handleFileChange}
+            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+          />
+          {formData.zipFile && (
+            <p className="text-sm text-zinc-300 mt-2">
+              Selected file: {formData.zipFile.name}
+            </p>
+          )}
         </LabelInputContainer>
 
         {/* Collaborators Section */}
-        <div className="space-y-2">
-          <Label>Collaborators (Optional)</Label>
-          {collaborators.map((collab, index) => (
-            <div
-              key={index}
-              className="flex items-center space-x-2 text-sm bg-zinc-800 p-2 rounded"
-            >
-              <span className="flex-grow">
-                {collab.name} ({collab.email})
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveCollaborator(index)}
-                className="text-red-400 hover:text-red-600 transition-colors"
+        <div className="mb-6 p-4 border border-zinc-700 rounded-md">
+          <h3 className="text-lg font-semibold mb-3">
+            Collaborators (Optional)
+          </h3>
+          <div className="space-y-3">
+            {collaborators.map((collab, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center bg-zinc-700 p-3 rounded-md"
               >
-                &times;
-              </button>
-            </div>
-          ))}
-          <div className="flex space-x-2">
+                <span>
+                  {collab.name} ({collab.email})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCollaborator(index)}
+                  className="text-red-400 hover:text-red-300 text-sm"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 mt-4">
             <Input
+              placeholder="Collaborator Name"
               type="text"
-              placeholder="Name"
               value={newCollaborator.name}
               onChange={(e) =>
-                setNewCollaborator({ ...newCollaborator, name: e.target.value })
+                setNewCollaborator((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                }))
               }
-              className="flex-grow bg-zinc-900 text-white"
+              className="flex-1"
             />
             <Input
+              placeholder="Collaborator Email"
               type="email"
-              placeholder="Email"
               value={newCollaborator.email}
               onChange={(e) =>
-                setNewCollaborator({
-                  ...newCollaborator,
+                setNewCollaborator((prev) => ({
+                  ...prev,
                   email: e.target.value,
-                })
+                }))
               }
-              className="flex-grow bg-zinc-900 text-white"
+              className="flex-1"
             />
             <button
               type="button"
               onClick={handleAddCollaborator}
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition"
             >
               Add
             </button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* For Sale Section */}
+        <div className="mb-8 flex items-center space-x-3">
           <input
             id="isForSale"
-            name="isForSale" // Name must match formData key and backend expected key
+            name="isForSale"
             type="checkbox"
             checked={formData.isForSale}
             onChange={handleChange}
-            className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out bg-zinc-800 border-zinc-700 rounded"
+            className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
           />
-          <Label htmlFor="isForSale">Mark as for sale?</Label>
+          <Label htmlFor="isForSale" className="text-lg">
+            Mark project for sale?
+          </Label>
         </div>
 
         {formData.isForSale && (
-          <LabelInputContainer>
-            <Label htmlFor="price">Price (KSH) *</Label>
+          <LabelInputContainer className="mb-8">
+            <Label htmlFor="price">Price (KES)</Label>
             <Input
               id="price"
               name="price"
-              type="number"
               placeholder="e.g., 5000"
+              type="number"
+              step="0.01"
               value={formData.price}
               onChange={handleChange}
               required={formData.isForSale}
-              className="bg-zinc-900 text-white"
             />
           </LabelInputContainer>
         )}
 
-        <LabelInputContainer>
-          <Label htmlFor="zipFile">Project File (ZIP only) *</Label>
-          <Input
-            id="zipFile"
-            name="zipFile" // Name must match formData key and backend expected key for the file
-            type="file"
-            accept=".zip" // Suggest only zip files
-            onChange={handleChange}
-            required
-            className="bg-zinc-900 text-white cursor-pointer file:text-white file:bg-blue-600 file:border-none file:px-3 file:py-1 file:rounded file:cursor-pointer hover:file:bg-blue-700"
-          />
-          {previewUrl && (
-            <img
-              src={previewUrl}
-              alt="File preview"
-              className="mt-2 max-w-full h-auto rounded"
-            />
-          )}
-        </LabelInputContainer>
-
         <button
-          className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
           type="submit"
+          className="w-full relative inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
           disabled={isLoading}
         >
-          {isLoading ? "Uploading..." : "Upload Project"} &rarr;
-          <BottomGradient />
+          <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+          <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl hover:bg-slate-800 transition-colors duration-200">
+            {isLoading ? "Uploading..." : "Upload Project"}
+          </span>
         </button>
       </form>
 
-      {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="bg-zinc-900 p-6 rounded-lg shadow-xl max-w-sm w-full text-white space-y-4"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="bg-zinc-800 p-8 rounded-lg shadow-2xl max-w-sm w-full text-center border border-zinc-700"
           >
             <h2 className="text-xl font-bold">Confirm Upload</h2>
-            <p>Are you sure you want to upload this project?</p>
+            <p className="mt-4 mb-6 text-zinc-300">
+              Are you sure you want to upload this project?
+            </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowConfirm(false)}

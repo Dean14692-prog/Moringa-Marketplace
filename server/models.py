@@ -45,14 +45,11 @@ class User(db.Model, SerializerMixin):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     role = db.relationship('Role', backref=db.backref('users', lazy=True))
 
-    # Add this to ensure 'role' is included in serialization for direct access
-    # If you have a custom serialize method, ensure it returns 'role'
     serialize_rules = (
-        '-_password_hash', # Exclude password hash from serialization
-        'role.name',       # Include the name of the associated role
+        '-_password_hash',
+        'role.name',
     )
 
-    # Custom serialize method to ensure role is always included and explicitly named 'role'
     def serialize(self):
         return {
             'id': self.id,
@@ -67,7 +64,7 @@ class User(db.Model, SerializerMixin):
             'skills': self.skills,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'role': self.role.name if self.role else None # This line is critical for frontend
+            'role': self.role.name if self.role else None
         }
 
     def set_password(self, password):
@@ -84,9 +81,9 @@ class User(db.Model, SerializerMixin):
             last_name=last_name,
             email=email,
             role_id=role_id,
-            **kwargs # For bio, profile_pic, github, linkedin, skills
+            **kwargs
         )
-        user.set_password(password) # Hash the password before saving
+        user.set_password(password)
         db.session.add(user)
         db.session.commit()
         return user
@@ -117,6 +114,10 @@ class Project(db.Model, SerializerMixin):
     __tablename__ = 'projects'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
+    # --- MODIFICATION START ---
+    # Use db.JSON for JSON column, no length needed
+    collaborators = db.Column(db.JSON, nullable=False) 
+    # --- MODIFICATION END ---
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     tech_stack = db.Column(db.String(255))
@@ -124,25 +125,42 @@ class Project(db.Model, SerializerMixin):
     live_preview_url = db.Column(db.String(255))
     isForSale = db.Column(db.Boolean, default=False)
     price = db.Column(db.Float, default=0.0)
-    uploaded_by = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False) # Store username
+    uploaded_by = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False)
     isApproved = db.Column(db.Boolean, default=False)
     status_changed_by = db.Column(db.String(80)) 
-    review_reason = db.Column(db.Text, nullable=True) # ADDED THIS LINE
-    file = db.Column(db.String(255)) # Path to uploaded file/image
+    review_reason = db.Column(db.Text, nullable=True)
+    file = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     user = db.relationship('User', foreign_keys=[uploaded_by], backref='uploaded_projects')
 
     serialize_rules = (
-        '-users_projects.project', # Prevent recursive serialization
-        '-reviews.user_project',   # Prevent recursive serialization
+        '-users_projects.project',
+        '-reviews.user_project',
     )
 
     def serialize(self):
+        serialized_collaborators = []
+        # Ensure self.collaborators is iterable and contains dictionaries
+        if isinstance(self.collaborators, list):
+            for collab in self.collaborators:
+                if isinstance(collab, dict) and 'name' in collab and 'email' in collab:
+                    serialized_collaborators.append({
+                        'name': collab['name'],
+                        'email': collab['email']
+                    })
+        elif isinstance(self.collaborators, dict) and 'name' in self.collaborators and 'email' in self.collaborators:
+            # Fallback for a single dictionary if that somehow gets stored
+            serialized_collaborators.append({
+                'name': self.collaborators['name'],
+                'email': self.collaborators['email']
+            })
+        
         return {
             'id': self.id,
             'title': self.title,
+            'collaborators': serialized_collaborators, # Now correctly serializing the list
             'category': self.category,
             'description': self.description,
             'tech_stack': self.tech_stack,
@@ -153,11 +171,10 @@ class Project(db.Model, SerializerMixin):
             'uploaded_by': self.uploaded_by,
             'isApproved': self.isApproved,
             'status_changed_by': self.status_changed_by,
-            'review_reason': self.review_reason, # ADDED THIS LINE
+            'review_reason': self.review_reason,
             'file': self.file,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            # You can add user details if needed, e.g., 'uploader_details': self.user.serialize()
         }
 
     @classmethod
@@ -175,14 +192,23 @@ class Project(db.Model, SerializerMixin):
     def get_all(cls):
         return cls.query.all()
 
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
     @classmethod
     def search_and_filter(cls, query=None, category=None, tech_stack=None, uploaded_by=None, isApproved=None):
         q = cls.query
         if query:
             q = q.filter(
                 (cls.title.ilike(f'%{query}%')) |
-                (cls.description.ilike(f'%{query}%')) |
-                (cls.tech_stack.ilike(f'%{query}%'))
+                (cls.description.ilike(f'%{query}%'))
             )
         if category:
             q = q.filter_by(category=category)
@@ -194,63 +220,47 @@ class Project(db.Model, SerializerMixin):
             q = q.filter_by(isApproved=isApproved)
         return q.all()
 
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
 
 class UsersProject(db.Model, SerializerMixin):
     __tablename__ = 'users_projects'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    action = db.Column(db.String(50)) # e.g., 'uploading', 'collaborating', 'reviewing', 'approving', 'rejecting'
+    action = db.Column(db.String(50), nullable=False) # e.g., 'uploading', 'collaborating'
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    user = db.relationship('User', backref=db.backref('user_actions', lazy=True))
-    project = db.relationship('Project', backref=db.backref('project_users_actions', lazy=True))
+    user = db.relationship('User', backref=db.backref('user_projects', cascade='all, delete-orphan'))
+    project = db.relationship('Project', backref=db.backref('users_projects', cascade='all, delete-orphan'))
 
     serialize_rules = (
-        '-user.user_actions',
-        '-project.project_users_actions',
+        '-user.user_projects', # Prevent recursive serialization
+        '-project.users_projects', # Prevent recursive serialization
     )
 
     @classmethod
     def create(cls, **kwargs):
-        user_project = cls(**kwargs)
-        db.session.add(user_project)
+        record = cls(**kwargs)
+        db.session.add(record)
         db.session.commit()
-        return user_project
+        return record
 
-    @classmethod
-    def get_by_user_and_project(cls, user_id, project_id, action):
-        return cls.query.filter_by(user_id=user_id, project_id=project_id, action=action).first()
-
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        db.session.commit()
 
 class Review(db.Model, SerializerMixin):
     __tablename__ = 'reviews'
     id = db.Column(db.Integer, primary_key=True)
-    user_project_id = db.Column(db.Integer, db.ForeignKey('users_projects.id'), nullable=False) # Link to a specific user's action on a project
-    rating = db.Column(db.Integer, nullable=False) # e.g., 1-5 stars
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False) # e.g., 1-5
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    user_project = db.relationship('UsersProject', backref=db.backref('reviews', lazy=True))
+    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+    project = db.relationship('Project', backref=db.backref('reviews', lazy=True))
 
     serialize_rules = (
-        '-user_project.reviews',
+        '-user.reviews',
+        '-project.reviews',
     )
 
     @classmethod
@@ -268,12 +278,22 @@ class Merchandise(db.Model, SerializerMixin):
     price = db.Column(db.Float, nullable=False)
     image_url = db.Column(db.String(255))
     stock_quantity = db.Column(db.Integer, default=0)
+    category = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    serialize_rules = (
-        # No recursive rules needed for Merchandise itself, unless linked to others
-    )
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "price": self.price,
+            "image_url": self.image_url,
+            "stock_quantity": self.stock_quantity,
+            "category": self.category,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
 
     @classmethod
     def create(cls, **kwargs):
@@ -281,14 +301,6 @@ class Merchandise(db.Model, SerializerMixin):
         db.session.add(merchandise)
         db.session.commit()
         return merchandise
-
-    @classmethod
-    def get_by_id(cls, merch_id):
-        return cls.query.get(merch_id)
-
-    @classmethod
-    def get_all(cls):
-        return cls.query.all()
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -300,32 +312,44 @@ class Merchandise(db.Model, SerializerMixin):
         db.session.delete(self)
         db.session.commit()
 
+    @classmethod
+    def get_by_id(cls, merchandise_id):
+        return cls.query.get(merchandise_id)
+
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
+
+
 class Order(db.Model, SerializerMixin):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    total_amount = db.Column(db.Float, nullable=False)
-    payment_status = db.Column(db.String(50), default='Pending') # e.g., 'Pending', 'Completed', 'Failed'
+    total_amount = db.Column(db.Float, nullable=False, default=0.0)
+    payment_status = db.Column(db.String(50), default='Pending') # e.g., Pending, Completed, Failed
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
-    order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade="all, delete-orphan")
+    order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
     serialize_rules = (
         '-user.orders',
-        'order_items.merchandise', # Include merchandise details for each order item
+        'order_items.merchandise.name',
+        'order_items.merchandise.description',
+        'order_items.merchandise.price',
+        'order_items.merchandise.image_url',
     )
 
     def serialize(self):
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'total_amount': self.total_amount,
-            'payment_status': self.payment_status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'order_items': [item.serialize() for item in self.order_items]
+            "id": self.id,
+            "user_id": self.user_id,
+            "total_amount": self.total_amount,
+            "payment_status": self.payment_status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "order_items": [item.serialize() for item in self.order_items]
         }
 
     @classmethod
@@ -335,28 +359,10 @@ class Order(db.Model, SerializerMixin):
         db.session.commit()
         return order
 
-    def add_item(self, merchandise_id, quantity, price_per_item):
-        item = OrderItem.query.filter_by(order_id=self.id, merchandise_id=merchandise_id).first()
-        if item:
-            item.quantity += quantity
-            item.subtotal = item.quantity * item.price_at_purchase
-        else:
-            item = OrderItem.create(order_id=self.id, merchandise_id=merchandise_id, quantity=quantity, price_at_purchase=price_per_item)
-        
-        # Update total amount for the order
-        self.total_amount += (quantity * price_per_item) # Add the new item's value
-        db.session.commit() # Commit changes to the order and the new/updated item
-        return item
+    @classmethod
+    def get_by_id(cls, order_id):
+        return cls.query.get(order_id)
 
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
 
 class OrderItem(db.Model, SerializerMixin):
     __tablename__ = 'order_items'
@@ -387,23 +393,15 @@ class OrderItem(db.Model, SerializerMixin):
             'quantity': self.quantity,
             'price_at_purchase': self.price_at_purchase,
             'subtotal': self.subtotal,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'merchandise_name': self.merchandise.name if self.merchandise else None,
             'merchandise_image_url': self.merchandise.image_url if self.merchandise else None,
-            'merchandise_price': self.merchandise.price if self.merchandise else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
     @classmethod
-    def create(cls, order_id, merchandise_id, quantity, price_at_purchase):
-        subtotal = quantity * price_at_purchase
-        order_item = cls(
-            order_id=order_id,
-            merchandise_id=merchandise_id,
-            quantity=quantity,
-            price_at_purchase=price_at_purchase,
-            subtotal=subtotal
-        )
+    def create(cls, **kwargs):
+        order_item = cls(**kwargs)
         db.session.add(order_item)
         db.session.commit()
         return order_item
@@ -413,30 +411,26 @@ class OrderItem(db.Model, SerializerMixin):
         return cls.query.get(item_id)
 
     def update(self, **kwargs):
-        # Recalculate subtotal if quantity changes
         if 'quantity' in kwargs and self.price_at_purchase is not None:
             self.quantity = kwargs['quantity']
             self.subtotal = self.quantity * self.price_at_purchase
-        elif 'quantity' in kwargs: # If price_at_purchase is None (shouldn't be, but as a safeguard)
+        elif 'quantity' in kwargs:
             self.quantity = kwargs['quantity']
-            # Subtotal calculation might be inaccurate without price, handle accordingly
         
         for key, value in kwargs.items():
-            if key not in ['quantity', 'subtotal'] and hasattr(self, key): # Avoid double-setting quantity/subtotal
+            if key not in ['quantity', 'subtotal'] and hasattr(self, key):
                 setattr(self, key, value)
         
-        # After updating the item, update the parent order's total_amount
         if self.order:
             self.order.total_amount = sum(item.subtotal for item in self.order.order_items)
-            db.session.add(self.order) # Ensure the order is marked for update
+            db.session.add(self.order)
         
         db.session.commit()
 
     def delete(self):
-        # Before deleting, update the parent order's total_amount
         if self.order:
             self.order.total_amount -= self.subtotal
-            db.session.add(self.order) # Mark for update
+            db.session.add(self.order)
         
         db.session.delete(self)
         db.session.commit()
