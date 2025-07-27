@@ -123,6 +123,7 @@ class Project(db.Model, SerializerMixin):
     tech_stack = db.Column(db.String(255))
     github_link = db.Column(db.String(255), nullable=False)
     live_preview_url = db.Column(db.String(255))
+    image_url = db.Column(db.String(255))
     isForSale = db.Column(db.Boolean, default=False)
     price = db.Column(db.Float, default=0.0)
     uploaded_by = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False)
@@ -166,6 +167,7 @@ class Project(db.Model, SerializerMixin):
             'tech_stack': self.tech_stack,
             'github_link': self.github_link,
             'live_preview_url': self.live_preview_url,
+            'image_url': self.image_url,
             'isForSale': self.isForSale,
             'price': self.price,
             'uploaded_by': self.uploaded_by,

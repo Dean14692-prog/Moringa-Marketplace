@@ -6,13 +6,17 @@ import Footer from "../components/footer";
 import Navbar from "../components/navbar";
 import MerchCard from "../components/merchpreview";
 import AnimatedTestimonialsDemo from "../components/testimonials";
+import AboutAnimation from "./AnimatedStatics"
+
 
 const Landingpage = () => {
   return (
     <div>
       <Navbar />
       <HerosSection />
-      <AnimatedTooltipPreview />
+      {/* <AnimatedTooltipPreview /> */}
+      {/* <AboutAnimation /> */}
+      <AboutAnimation />
       <Carousel />
       <MerchCard />
       <AnimatedTestimonialsDemo />

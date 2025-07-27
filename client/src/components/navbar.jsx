@@ -28,18 +28,7 @@ export default function Navbar() {
               >
                 Contact Us
               </Link>
-              <Link
-                to="/shop"
-                className="text-white hover:text-blue-300 px-3 py-2 rounded-md transition-all duration-200"
-              >
-                Merchants
-              </Link>
-              <Link
-                to="/projects"
-                className="text-white hover:text-blue-300 px-3 py-2 rounded-md transition-all duration-200"
-              >
-                Projects
-              </Link>
+
             </div>
             {/* <div className="mt-4 flex space-x-3"></div> */}
 

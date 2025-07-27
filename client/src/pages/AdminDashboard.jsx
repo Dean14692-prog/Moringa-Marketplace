@@ -603,14 +603,10 @@ const AdminDashboard = () => {
                     <div>
                       <p className="text-sm text-gray-500">For Sale</p>
                       <p className="font-medium text-gray-700">
-                        {selectedMessage.isForSale ? "Yes" : "No"}
-                        {selectedMessage.isForSale && (
-                          <span className="ml-2">
-                            (KES {selectedMessage.price?.toFixed(2) || "0.00"})
-                          </span>
-                        )}
+                        {selectedMessage.price || "Not For Sell"}
                       </p>
                     </div>
+
                   </div>
 
                   <div className="mb-6">
@@ -768,3 +764,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

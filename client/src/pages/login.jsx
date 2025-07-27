@@ -54,7 +54,7 @@ export default function LoginForm() {
         } else if (data.role === "admin") {
           navigate("/admin-dashboard"); // Takes admin to admin dashboard
         } else {
-          navigate("/shop"); // Takes other users (e.g., 'user' role) to the shop page
+          navigate("/home"); // Takes other users (e.g., 'user' role) to the shop page
         }
         // --- END REDIRECTION LOGIC ---
 

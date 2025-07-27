@@ -271,6 +271,7 @@ class UserProject(Resource):
             tech_stack=data.get('tech_stack', project.tech_stack),
             github_link=data.get('github_link', project.github_link),
             live_preview_url=data.get('live_preview_url', project.live_preview_url),
+            image_url=data.get('image_url', project.image_url),
             isForSale=data.get('isForSale', project.isForSale),
             price=data.get('price', project.price),
         )
@@ -307,6 +308,7 @@ class ProjectUpload(Resource):
         tech_stack = request.form.get('tech_stack', '')
         github_link = request.form.get('github_link')
         live_preview_url = request.form.get('live_preview_url', '')
+        image_url = request.form.get('image_url', '')
         isForSale = request.form.get('isForSale', 'false').lower() == 'true'
         price = float(request.form.get('price', 0))
 
@@ -330,6 +332,7 @@ class ProjectUpload(Resource):
             tech_stack=tech_stack,
             github_link=github_link,
             live_preview_url=live_preview_url,
+            image_url=image_url,
             isForSale=isForSale,
             collaborators = collaborators, # This will now be a list of dicts
             price=price,
