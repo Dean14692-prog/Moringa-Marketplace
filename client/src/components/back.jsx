@@ -29,7 +29,7 @@ export function HerosSection() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
-          <Link to="/projects">
+          <Link to="/signup">
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 transition duration-200 rounded-lg text-white shadow-[0px_2px_0px_0px_#FFFFFF40_inset]">
               View now
             </button>

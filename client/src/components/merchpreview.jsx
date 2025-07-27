@@ -55,7 +55,7 @@ export default function MerchCard() {
       </div>
 
       {/* View More Button */}
-      <Link to = "/shop">
+      <Link to = "/signup">
         <button className="mt-10 rounded-full bg-white text-black font-semibold px-6 py-2 hover:bg-neutral-200 transition">
           View More
         </button>

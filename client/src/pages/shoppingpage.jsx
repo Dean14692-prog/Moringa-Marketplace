@@ -67,13 +67,16 @@ const EcommerceLayout = () => {
       }
 
       try {
-        const response = await fetch("http://localhost:5555/api/users/profile", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+        const response = await fetch(
+          "http://localhost:5555/api/users/profile",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
 
         if (response.ok) {
           const userData = await response.json();
@@ -311,6 +314,7 @@ const EcommerceLayout = () => {
 
   const showAdminButton =
     userEmail === "samtomashi@moringaschool.com" || userRole === "admin";
+  // const userRole = localStorage.getItem("userRole"); // or from context/props
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex">
@@ -334,41 +338,41 @@ const EcommerceLayout = () => {
             <ul>
               <li className="mb-4">
                 {/* Replaced <a> with Link */}
-                <Link
+                {/* <Link
                   to="/"
                   className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
                 >
                   <Home className="mr-3 h-5 w-5" /> Home
-                </Link>
+                </Link> */}
               </li>
               <li className="mb-4">
                 {/* Replaced <a> with Link */}
-                <Link
+                {/* <Link
                   to="/products"
                   className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
                 >
                   <Package className="mr-3 h-5 w-5" /> Products
-                </Link>
+                </Link> */}
               </li>
               <li className="mb-4">
                 {/* Replaced <a> with Link */}
-                <Link
+                {/* <Link
                   to="/favorites"
                   className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
                 >
                   <Star className="mr-3 h-5 w-5" /> Favorites
-                </Link>
+                </Link> */}
               </li>
               <li className="mb-4">
                 {/* Replaced <a> with Link */}
-                <Link
+                {/* <Link
                   to="/dashboard"
                   className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
                 >
                   <FolderKanban className="mr-3 h-5 w-5" /> Dashboard
-                </Link>
+                </Link> */}
               </li>
-              <li className="mb-4">
+              {/* <li className="mb-4">
                 {showAdminButton && (
                   <Link
                     to="/upload-merch"
@@ -378,7 +382,74 @@ const EcommerceLayout = () => {
                     <span>Upload</span>
                   </Link>
                 )}
+              </li> */}
+            </ul>
+            <ul>
+              {/* HOME icon - dynamic based on role */}
+              <li className="mb-4">
+                <Link
+                  to={userRole === "user" ? "/home" : "/"}
+                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                >
+                  <Home className="mr-3 h-5 w-5" /> Home
+                </Link>
               </li>
+
+              {/* Products - visible to all */}
+              <li className="mb-4">
+                <Link
+                  to="/products"
+                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                >
+                  <Package className="mr-3 h-5 w-5" /> Products
+                </Link>
+              </li>
+
+              {/* Favorites - visible to all */}
+              <li className="mb-4">
+                <Link
+                  to="/favorites"
+                  className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                >
+                  <Star className="mr-3 h-5 w-5" /> Favorites
+                </Link>
+              </li>
+
+              {/* Dashboard - conditional by role */}
+              {userRole === "student" && (
+                <li className="mb-4">
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                  >
+                    <FolderKanban className="mr-3 h-5 w-5" /> Dashboard
+                  </Link>
+                </li>
+              )}
+
+              {userRole === "admin" && (
+                <li className="mb-4">
+                  <Link
+                    to="/admin-dashboard"
+                    className="flex items-center text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                  >
+                    <FolderKanban className="mr-3 h-5 w-5" /> Admin Dashboard
+                  </Link>
+                </li>
+              )}
+
+              {/* Upload - only for admin */}
+              {userRole === "admin" && (
+                <li className="mb-4">
+                  <Link
+                    to="/upload-merch"
+                    className="flex items-center gap-2 text-gray-300 hover:text-teal-400 transition-colors duration-200"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Upload</span>
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
 

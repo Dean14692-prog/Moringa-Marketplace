@@ -66,7 +66,7 @@ export function AnimatedTooltipPreview() {
           </motion.h2>
 
           <motion.p
-            className="text-lg text-gray-700"
+            className="text-lg text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
@@ -83,7 +83,6 @@ export function AnimatedTooltipPreview() {
           <AnimatedTooltip items={people} />
         </div>
       </div>
-      <AnimatedStats />
     </>
   );
 
