@@ -1,376 +1,243 @@
 // "use client";
-// import React, { useEffect, useId, useRef, useState, useCallback } from "react";
-// import { AnimatePresence, motion } from "framer-motion";
-// import { ArrowLeft } from "lucide-react";
+// import React, { useEffect, useState, useCallback } from "react";
 // import { Link, useNavigate } from "react-router-dom";
-// import { toast } from "sonner";
-// import { useOutsideClick } from "../components/ui/use-outside-click"; // Make sure this path is correct for your project
-
-// // --- Icon Imports ---
+// import { motion, AnimatePresence } from "framer-motion";
 // import {
-//   IconBook,
-//   IconStar,
-//   IconExternalLink,
-//   IconBrandGithub,
-//   IconUsers, // Added for collaborators
-// } from "@tabler/icons-react";
+//   ArrowLeft,
+//   X,
+//   Star,
+//   Clock,
+//   CheckCircle,
+//   XCircle,
+//   Search,
+// } from "lucide-react";
+// import { toast } from "sonner";
 
-// export default function MyProjects({ limit }) {
+// export default function MyProjects() {
 //   const navigate = useNavigate();
-//   const [projects, setProjects] = useState([]); // State to store fetched projects
+//   const [projects, setProjects] = useState([]);
+//   const [filteredProjects, setFilteredProjects] = useState([]);
+//   const [activeProject, setActiveProject] = useState(null);
 //   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [activeProject, setActiveProject] = useState(null); // State for the active project in the modal
-//   const ref = useRef(null);
-//   const id = useId();
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [username, setUsername] = useState("User");
+//   const API_BASE_URL = "http://127.0.0.1:5555";
 
-//   // Define your API base URL
-//   const API_BASE_URL = "http://127.0.0.1:5555"; // Your Flask backend URL
-
-//   // Fetch projects from the backend
-//   const fetchUserProjects = useCallback(async () => {
+//   const fetchProjects = useCallback(async () => {
 //     setLoading(true);
-//     setError(null);
-//     const token = localStorage.getItem("access_token");
-
-//     if (!token) {
-//       toast.error("Authentication required. Please log in.");
-//       navigate("/login");
-//       return;
-//     }
-
 //     try {
+//       const token = localStorage.getItem("access_token");
 //       const res = await fetch(`${API_BASE_URL}/api/users/projects`, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "Content-Type": "application/json",
-//         },
+//         headers: { Authorization: `Bearer ${token}` },
 //       });
 
-//       if (!res.ok) {
-//         if (res.status === 401 || res.status === 403) {
-//           localStorage.removeItem("access_token");
-//           localStorage.removeItem("refresh_token");
-//           toast.error("Session expired or unauthorized. Please log in again.");
-//           navigate("/login");
-//           return;
-//         }
-//         throw new Error(`HTTP error! status: ${res.status}`);
-//       }
-
+//       if (!res.ok) throw new Error("Failed to fetch");
 //       const data = await res.json();
-//       // Sort projects by submittedAt, newest first
-//       const sortedProjects = data.sort((a, b) => {
-//         const dateA = new Date(a.submittedAt);
-//         const dateB = new Date(b.submittedAt);
-//         return dateB - dateA; // Descending order (newest first)
-//       });
-//       setProjects(sortedProjects);
+//       setProjects(data);
+//       setFilteredProjects(data);
 //     } catch (err) {
-//       console.error("Error fetching user projects:", err);
-//       setError("Failed to load your projects.");
-//       toast.error("Failed to load your projects.");
+//       toast.error("Unable to load projects.");
 //     } finally {
 //       setLoading(false);
 //     }
-//   }, [navigate]);
+//   }, []);
 
-//   useEffect(() => {
-//     fetchUserProjects();
+//   const fetchUsername = useCallback(async () => {
+//     try {
+//       const token = localStorage.getItem("access_token");
+//       const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
 
-//     // Optional: Set up polling for projects if you want real-time updates
-//     const pollingInterval = setInterval(fetchUserProjects, 60000); // Every minute
-//     return () => clearInterval(pollingInterval);
-//   }, [fetchUserProjects]);
-
-//   useEffect(() => {
-//     const handleKeyDown = (e) => {
-//       if (e.key === "Escape") setActiveProject(null);
-//     };
-
-//     if (activeProject) {
-//       document.body.style.overflow = "hidden";
-//       window.addEventListener("keydown", handleKeyDown);
-//     } else {
-//       document.body.style.overflow = "auto";
+//       const data = await res.json();
+//       if (res.ok && data.username) {
+//         setUsername(data.username);
+//       } else {
+//         setUsername("User");
+//       }
+//     } catch (error) {
+//       console.error("Profile fetch failed:", error);
+//       setUsername("User");
 //     }
+//   }, []);
 
-//     return () => window.removeEventListener("keydown", handleKeyDown);
-//   }, [activeProject]);
+//   useEffect(() => {
+//     fetchProjects();
+//     fetchUsername();
+//   }, [fetchProjects, fetchUsername]);
 
-//   useOutsideClick(ref, () => setActiveProject(null));
-
-//   if (loading) {
-//     return (
-//       <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 items-center justify-center">
-//         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-//       </div>
+//   useEffect(() => {
+//     const filtered = projects.filter(
+//       (project) =>
+//         project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//         project.description.toLowerCase().includes(searchTerm.toLowerCase())
 //     );
-//   }
+//     setFilteredProjects(filtered);
+//   }, [searchTerm, projects]);
 
-//   if (error) {
+//   const getStatus = (project) => {
+//     if (project.isApproved)
+//       return (
+//         <span className="text-green-400 flex items-center gap-1">
+//           <CheckCircle className="w-4 h-4" /> Approved
+//         </span>
+//       );
+//     if (project.review_reason)
+//       return (
+//         <span className="text-red-400 flex items-center gap-1">
+//           <XCircle className="w-4 h-4" /> Rejected
+//         </span>
+//       );
 //     return (
-//       <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 items-center justify-center">
-//         <div className="text-red-500 dark:text-red-400 text-lg">{error}</div>
-//       </div>
+//       <span className="text-yellow-400 flex items-center gap-1">
+//         <Clock className="w-4 h-4" /> Pending
+//       </span>
 //     );
-//   }
-
-//   // Apply limit if provided, otherwise show all
-//   const displayedProjects = limit ? projects.slice(0, limit) : projects;
+//   };
 
 //   return (
-//     <div className="px-6 py-6 min-h-screen bg-gray-50 dark:bg-neutral-900">
-//       <Link
-//         to="/dashboard"
-//         className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200 mb-6 w-fit"
-//       >
-//         <ArrowLeft className="h-4 w-4" />
-//         <span>Back to Dashboard</span>
-//       </Link>
+//     <div className="min-h-screen bg-[#0d1117] text-white px-4 py-8 font-sans relative z-0">
+//       {/* Navbar */}
+//       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 bg-[#161b22] rounded-xl border border-gray-700 shadow-md shadow-blue-500/10 backdrop-blur-md">
+//         {/* Left: Back Button */}
+//         <div className="flex-shrink-0">
+//           <button
+//             onClick={() => navigate("/dashboard")}
+//             className="bg-[#1f6feb] hover:bg-[#388bfd] transition-all px-4 py-2 rounded-full flex items-center gap-2 text-white shadow-md shadow-blue-500/30"
+//           >
+//             <ArrowLeft className="w-4 h-4" /> Dashboard
+//           </button>
+//         </div>
 
-//       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-//         My Submitted Projects
-//       </h1>
+//         {/* Center: Search Bar */}
+//         <div className="flex-1 px-4">
+//           <div className="relative w-full max-w-md mx-auto">
+//             <input
+//               type="text"
+//               placeholder="Search projects..."
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//               className="w-full pl-10 pr-4 py-2 bg-[#0d1117] text-white border border-gray-700 rounded-full focus:outline-none focus:border-blue-500 shadow-inner shadow-blue-500/5"
+//             />
+//             <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+//           </div>
+//         </div>
 
-//       {displayedProjects.length === 0 ? (
-//         <p className="text-gray-600 dark:text-gray-400 text-lg text-center mt-10">
-//           No projects submitted yet. Go to "Upload Projects" to add one!
-//         </p>
+//         {/* Right: Username */}
+//         <div className="flex-shrink-0 text-right">
+//           <div className="text-lg font-semibold text-gray-300">
+//             Welcome, <span className="text-blue-400">{username}</span>!
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Projects Grid */}
+//       {loading ? (
+//         <div className="text-center text-gray-400 mt-6">
+//           Loading projects...
+//         </div>
+//       ) : filteredProjects.length === 0 ? (
+//         <div className="text-center text-gray-400 mt-6">
+//           No matching projects. Try a different search.
+//         </div>
 //       ) : (
-//         <ul className="max-w-2xl mx-auto w-full divide-y divide-gray-300 dark:divide-neutral-700">
-//           {displayedProjects.map((project) => (
-//             <motion.li
-//               layoutId={`card-${project.id}-${id}`}
-//               key={`card-${project.id}-${id}`}
+//         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-1 mt-4">
+//           {filteredProjects.map((project) => (
+//             <motion.div
+//               key={project.id}
+//               className="bg-[#161b22] rounded-xl shadow-xl hover:shadow-blue-600/30 transition-all border border-gray-700 hover:border-blue-500 cursor-pointer backdrop-blur-md h-[26rem] w-full flex flex-col overflow-hidden"
+//               whileHover={{ scale: 1.03 }}
+//               whileTap={{ scale: 0.98 }}
 //               onClick={() => setActiveProject(project)}
-//               className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer rounded-lg transition-colors duration-200"
 //             >
-//               <div className="flex gap-4 flex-col md:flex-row mt-2 items-center md:items-start">
-//                 <motion.div layoutId={`image-${project.id}-${id}`}>
-//                   {project.fileUrl ? ( // If you still store a preview image URL
-//                     <img
-//                       src={project.fileUrl}
-//                       alt={project.title}
-//                       className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-center border border-gray-200 dark:border-neutral-700"
-//                     />
-//                   ) : (
-//                     // Placeholder if no preview image
-//                     <div className="h-40 w-40 md:h-14 md:w-14 bg-gray-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500">
-//                       ZIP Project
-//                     </div>
-//                   )}
-//                 </motion.div>
-
-//                 <div>
-//                   <motion.h3
-//                     layoutId={`title-${project.id}-${id}`}
-//                     className="font-medium text-black dark:text-white text-center md:text-left text-lg line-clamp-1"
-//                   >
-//                     {project.title}
-//                   </motion.h3>
-//                   <motion.p
-//                     layoutId={`description-${project.id}-${id}`}
-//                     className="text-gray-600 dark:text-gray-400 text-center md:text-left text-sm line-clamp-2"
-//                   >
-//                     {project.description}
-//                   </motion.p>
-//                   {/* Display Collaborators in the list view (optional, could be just in modal) */}
-//                   {project.collaborators && project.collaborators.length > 0 && (
-//                     <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-//                       <IconUsers className="h-3 w-3 text-purple-500 dark:text-purple-400" />
-//                       <span>{project.collaborators.map((c) => c.name).join(", ")}</span>
-//                     </div>
-//                   )}
+//               <img
+//                 src={
+//                   project.image_url ||
+//                   "https://via.placeholder.com/400x300?text=No+Image"
+//                 }
+//                 alt="project"
+//                 className="w-full h-[75%] object-cover"
+//               />
+//               <div className="flex flex-col flex-grow justify-between mt-0 px-3 py-2">
+//                 <h3 className="text-lg font-semibold">{project.title}</h3>
+//                 <p className="text-sm text-gray-400 line-clamp-2 mb-2">
+//                   {project.description}
+//                 </p>
+//                 <div className="flex items-center justify-between text-sm">
+//                   <span className="flex items-center gap-1 text-gray-300">
+//                     <Star className="w-4 h-4 text-yellow-400" />
+//                     {project.average_rating || "N/A"}
+//                   </span>
+//                   {getStatus(project)}
 //                 </div>
 //               </div>
-
-//               <motion.span
-//                 layoutId={`status-${project.id}-${id}`}
-//                 className={`px-3 py-1 text-xs font-semibold rounded-full mt-4 md:mt-0
-//                     ${
-//                       project.status === "Approved"
-//                         ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-//                         : project.status === "Rejected"
-//                         ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-//                         : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-//                     }`}
-//               >
-//                 {project.status || "Pending"}
-//               </motion.span>
-//             </motion.li>
+//             </motion.div>
 //           ))}
-//         </ul>
+//         </div>
 //       )}
 
-//       {/* Modal for active project */}
+//       {/* Modal */}
 //       <AnimatePresence>
-//         {activeProject && typeof activeProject === "object" && (
+//         {activeProject && (
 //           <motion.div
-//             className="fixed inset-0 bg-black/60 backdrop-blur-sm h-full w-full z-10 grid place-items-center p-4"
+//             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-center items-center px-4"
 //             initial={{ opacity: 0 }}
 //             animate={{ opacity: 1 }}
 //             exit={{ opacity: 0 }}
 //           >
-//             <motion.button
-//               key={`button-close-${activeProject.id}-${id}`}
-//               layout
-//               initial={{ opacity: 0 }}
-//               animate={{ opacity: 1 }}
-//               exit={{ opacity: 0, transition: { duration: 0.05 } }}
-//               className="absolute top-4 right-4 bg-gray-100 dark:bg-neutral-700 rounded-full h-8 w-8 flex items-center justify-center shadow-lg z-50"
-//               onClick={() => setActiveProject(null)}
-//             >
-//               <CloseIcon className="text-black dark:text-white" />
-//             </motion.button>
-
 //             <motion.div
-//               layoutId={`card-${activeProject.id}-${id}`}
-//               ref={ref}
-//               className="w-full max-w-[700px] h-full md:h-fit md:max-h-[90%] flex flex-col bg-white dark:bg-neutral-800 sm:rounded-3xl overflow-hidden shadow-2xl relative"
+//               className="bg-[#0d1117] border border-gray-700 p-6 rounded-xl w-full max-w-2xl relative shadow-lg shadow-blue-500/20"
+//               initial={{ y: 60, opacity: 0, scale: 0.95 }}
+//               animate={{ y: 0, opacity: 1, scale: 1 }}
+//               exit={{ y: 30, opacity: 0, scale: 0.9 }}
+//               transition={{ duration: 0.3 }}
 //             >
-//               <motion.div layoutId={`image-${activeProject.id}-${id}`}>
-//                 {activeProject.fileUrl ? ( // If you still store a preview image URL
-//                   <img
-//                     src={activeProject.fileUrl}
-//                     alt={activeProject.title}
-//                     className="w-full h-60 md:h-80 object-cover object-top"
-//                   />
-//                 ) : (
-//                   // Placeholder for zip projects without a specific preview image
-//                   <div className="w-full h-60 md:h-80 bg-gray-100 dark:bg-neutral-700 flex items-center justify-center text-gray-400 dark:text-gray-500 text-lg">
-//                     ZIP Project - No Visual Preview
-//                   </div>
-//                 )}
-//               </motion.div>
-
-//               <div className="p-6 flex flex-col flex-grow">
-//                 <div className="flex justify-between items-start mb-4">
-//                   <div>
-//                     <motion.h3
-//                       layoutId={`title-${activeProject.id}-${id}`}
-//                       className="font-bold text-gray-900 dark:text-white text-2xl mb-1"
-//                     >
-//                       {activeProject.title}
-//                     </motion.h3>
-//                     <motion.p
-//                       layoutId={`description-${activeProject.id}-${id}`}
-//                       className="text-gray-600 dark:text-gray-400 text-sm mb-2"
-//                     >
-//                       {activeProject.description}
-//                     </motion.p>
-//                   </div>
-//                   <span
-//                     className={`px-3 py-1 text-xs font-semibold rounded-full
-//                     ${
-//                       activeProject.status === "Approved"
-//                         ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-//                         : activeProject.status === "Rejected"
-//                         ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-//                         : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-//                     }`}
+//               <button
+//                 onClick={() => setActiveProject(null)}
+//                 className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+//               >
+//                 <X className="w-5 h-5" />
+//               </button>
+//               <img
+//                 src={
+//                   activeProject.image_url ||
+//                   "https://via.placeholder.com/800x300?text=No+Image"
+//                 }
+//                 alt="Preview"
+//                 className="w-full h-[75%] max-h-96 object-cover mb-4"
+//               />
+//               <h2 className="text-2xl font-bold mb-2">{activeProject.title}</h2>
+//               <p className="text-gray-300 mb-3">{activeProject.description}</p>
+//               <div className="flex flex-wrap items-center justify-between text-sm text-gray-400 mb-2">
+//                 <span>Category: {activeProject.category}</span>
+//                 <span>Rating: {activeProject.average_rating || "N/A"}</span>
+//               </div>
+//               {activeProject.review_reason && (
+//                 <p className="text-red-400 text-sm">
+//                   Rejected because: {activeProject.review_reason}
+//                 </p>
+//               )}
+//               <div className="mt-4 flex gap-3">
+//                 {activeProject.githubLink && (
+//                   <a
+//                     href={activeProject.githubLink}
+//                     target="_blank"
+//                     rel="noreferrer"
+//                     className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm shadow-sm"
 //                   >
-//                     {activeProject.status || "Pending"}
-//                   </span>
-//                 </div>
-
-//                 <div className="text-gray-700 dark:text-gray-300 text-sm md:text-base mb-6 overflow-y-auto flex-grow [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]">
-//                   <p className="mb-4">{activeProject.description}</p>
-//                   {activeProject.category && (
-//                     <p className="flex items-center gap-2 mb-2">
-//                       <IconBook className="h-4 w-4 text-blue-500 dark:text-blue-400" />{" "}
-//                       <strong>Category:</strong> {activeProject.category}
-//                     </p>
-//                   )}
-//                   {activeProject.techStack && (
-//                     <p className="flex items-center gap-2 mb-2">
-//                       <IconStar className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />{" "}
-//                       <strong>Tech Stack:</strong> {activeProject.techStack}
-//                     </p>
-//                   )}
-//                   {activeProject.submittedAt && (
-//                     <p className="flex items-center gap-2 mb-2">
-//                       Submitted: {new Date(activeProject.submittedAt).toLocaleDateString()}
-//                     </p>
-//                   )}
-
-//                   {/* Display Collaborators in the modal */}
-//                   {activeProject.collaborators &&
-//                     activeProject.collaborators.length > 0 && (
-//                       <div className="mt-4">
-//                         <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-//                           <IconUsers className="h-5 w-5 text-purple-600 dark:text-purple-400" />{" "}
-//                           Collaborators:
-//                         </h4>
-//                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-//                           {activeProject.collaborators.map((collab, idx) => (
-//                             <li key={idx}>
-//                               {collab.name} {collab.email && `(${collab.email})`}
-//                             </li>
-//                           ))}
-//                         </ul>
-//                       </div>
-//                     )}
-
-//                   {activeProject.status === "Rejected" &&
-//                     activeProject.adminNotes && (
-//                       <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 text-xs">
-//                         <p className="font-medium text-red-700 dark:text-red-300 mb-1">
-//                           Admin Feedback:
-//                         </p>
-//                         <p className="text-red-600 dark:text-red-400">
-//                           {activeProject.adminNotes}
-//                         </p>
-//                       </div>
-//                     )}
-//                 </div>
-
-//                 {/* Action Buttons for download/preview */}
-//                 <div className="flex flex-wrap gap-3 mt-auto">
-//                   {/* Download ZIP File Button */}
-//                   {activeProject.zipFileUrl && (
-//                     <a
-//                       href={`${API_BASE_URL}${activeProject.zipFileUrl}`} // Correct URL construction
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700 transition"
-//                     >
-//                       <svg
-//                         xmlns="http://www.w3.org/2000/svg"
-//                         className="mr-2 h-4 w-4"
-//                         viewBox="0 0 20 20"
-//                         fill="currentColor"
-//                       >
-//                         <path
-//                           fillRule="evenodd"
-//                           d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-//                           clipRule="evenodd"
-//                         />
-//                       </svg>{" "}
-//                       Download ZIP
-//                     </a>
-//                   )}
-//                   {activeProject.githubLink && (
-//                     <a
-//                       href={activeProject.githubLink}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition"
-//                     >
-//                       <IconBrandGithub className="mr-2 h-4 w-4" /> GitHub
-//                     </a>
-//                   )}
-//                   {activeProject.livePreviewUrl && (
-//                     <a
-//                       href={activeProject.livePreviewUrl}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition"
-//                     >
-//                       <IconExternalLink className="mr-2 h-4 w-4" /> Live Demo
-//                     </a>
-//                   )}
-//                 </div>
+//                     GitHub
+//                   </a>
+//                 )}
+//                 {activeProject.livePreviewUrl && (
+//                   <a
+//                     href={activeProject.livePreviewUrl}
+//                     target="_blank"
+//                     rel="noreferrer"
+//                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm shadow-sm"
+//                   >
+//                     Live Demo
+//                   </a>
+//                 )}
 //               </div>
 //             </motion.div>
 //           </motion.div>
@@ -380,375 +247,305 @@
 //   );
 // }
 
-// export const CloseIcon = ({ className }) => (
-//   <svg
-//     xmlns="http://www.w3.org/2000/svg"
-//     width="24"
-//     height="24"
-//     viewBox="0 0 24 24"
-//     fill="none"
-//     stroke="currentColor"
-//     strokeWidth="2"
-//     strokeLinecap="round"
-//     strokeLinejoin="round"
-//     className={`h-4 w-4 ${className}`}
-//   >
-//     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-//     <path d="M18 6l-12 12" />
-//     <path d="M6 6l12 12" />
-//   </svg>
-// );
-
-// MyProjects.jsx
 "use client";
-import React, { useEffect, useId, useRef, useState, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  X,
+  Star,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Search,
+} from "lucide-react";
+import { toast } from "sonner";
 
-export default function MyProjects({ limit }) {
-  const [active, setActive] = useState(null);
-  const ref = useRef(null);
-  const id = useId();
+export default function MyProjects() {
+  const navigate = useNavigate();
+  const loaderRef = useRef(null);
 
-  // Define your API base URL
-  const API_BASE_URL = "http://127.0.0.1:5555"; // Your Flask backend URL
+  const [projects, setProjects] = useState([]);
+  const [filteredProjects, setFilteredProjects] = useState([]);
+  const [activeProject, setActiveProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [username, setUsername] = useState("User");
 
-  // Fetch projects from the backend
-  const fetchUserProjects = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const token = localStorage.getItem("access_token");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-    if (!token) {
-      toast.error("Authentication required. Please log in.");
-      navigate("/login");
-      return;
-    }
+  const API_BASE_URL = "http://127.0.0.1:5555";
+  const PROJECTS_PER_PAGE = 10;
 
+  const fetchUsername = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/projects`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Session expired. Please log in again.");
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          navigate("/login");
+      const data = await res.json();
+      if (res.ok && data.username) setUsername(data.username);
+    } catch (error) {
+      setUsername("User");
+    }
+  }, []);
+
+  const fetchProjects = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/users/projects?page=${page}&limit=${PROJECTS_PER_PAGE}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+      );
+
+      if (!res.ok) throw new Error("Fetch failed");
+      const data = await res.json();
+
+      if (page === 1) {
+        setProjects(data);
+        setFilteredProjects(data);
+      } else {
+        setProjects((prev) => [...prev, ...data]);
+        setFilteredProjects((prev) => [...prev, ...data]);
       }
 
-      const data = await response.json();
-      setProjects(data);
+      if (data.length < PROJECTS_PER_PAGE) {
+        setHasMore(false);
+      }
     } catch (err) {
-      console.error("Error fetching user projects:", err);
-      setError("Failed to load projects.");
       toast.error("Failed to load projects.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [navigate]);
+  }, [page]);
 
   useEffect(() => {
-    fetchUserProjects();
-  }, [fetchUserProjects]);
+    fetchUsername();
+  }, [fetchUsername]);
 
-  // Handle outside click for the modal
-  useOutsideClick(ref, () => {
-    if (activeProject) {
-      setActiveProject(null);
-    }
-  });
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
-  const getStatusBadge = (project) => {
-    if (project.isApproved) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-          <CheckCircle className="w-4 h-4 mr-1" /> Approved
-        </span>
-      );
-    } else if (project.review_reason) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-          <XCircle className="w-4 h-4 mr-1" /> Rejected
-        </span>
-      );
+  useEffect(() => {
+    if (searchTerm === "") {
+      setFilteredProjects(projects);
     } else {
+      const filtered = projects.filter(
+        (p) =>
+          p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredProjects(filtered);
+    }
+  }, [searchTerm, projects]);
+
+  // Infinite Scroll Observer
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setLoadingMore(true);
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 1 }
+    );
+
+    const currentRef = loaderRef.current;
+    if (currentRef) observer.observe(currentRef);
+
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
+  }, [hasMore, loadingMore]);
+
+  const getStatus = (project) => {
+    if (project.isApproved)
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-          <Clock className="w-4 h-4 mr-1" /> Pending
+        <span className="text-green-400 flex items-center gap-1">
+          <CheckCircle className="w-4 h-4" /> Approved
         </span>
       );
-    }
-
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active]);
-
-  useOutsideClick(ref, () => setActive(null));
-
-  const displayedCards = limit
-    ? [...cards].reverse().slice(0, limit)
-    : [...cards].reverse();
+    if (project.review_reason)
+      return (
+        <span className="text-red-400 flex items-center gap-1">
+          <XCircle className="w-4 h-4" /> Rejected
+        </span>
+      );
+    return (
+      <span className="text-yellow-400 flex items-center gap-1">
+        <Clock className="w-4 h-4" /> Pending
+      </span>
+    );
+  };
 
   return (
-    <div className="divide-y divide-gray-200">
-      <Link
-        to="/dashboard"
-        className="absolute top-4 left-4 flex items-center gap-2 text-sm text-black px-2 py-1 rounded hover:bg-zinc-200 transition-colors duration-200"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>Home</span>
-      </Link>
+    <div className="min-h-screen bg-[#0d1117] text-white px-4 py-8 font-sans relative z-0">
+      {/* Navbar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 bg-[#161b22] rounded-xl border border-gray-700 shadow-md shadow-blue-500/10">
+        {/* Back button */}
+        <div>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="bg-[#1f6feb] hover:bg-[#388bfd] px-4 py-2 rounded-full flex items-center gap-2 text-white shadow-md"
+          >
+            <ArrowLeft className="w-4 h-4" /> Dashboard
+          </button>
+        </div>
 
+        {/* Search Bar Center */}
+        <div className="w-full sm:flex-1 sm:px-8">
+          <div className="relative w-full max-w-md mx-auto sm:mx-0">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-[#0d1117] text-white border border-gray-700 rounded-full focus:outline-none focus:border-blue-500"
+            />
+            <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Username */}
+        <div className="text-right">
+          <div className="text-lg font-semibold text-gray-300">
+            Welcome, <span className="text-blue-400">{username}</span>!
+          </div>
+        </div>
+      </div>
+
+      {/* Projects Grid */}
+      {loading ? (
+        <div className="text-center text-gray-400 mt-6">
+          Loading projects...
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="text-center text-gray-400 mt-6">
+          No matching projects. Try a different search.
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-1 mt-4">
+            {filteredProjects.map((project) => (
+              <motion.div
+                key={project.id}
+                className="bg-[#161b22] rounded-xl shadow-xl hover:shadow-blue-600/30 transition-all border border-gray-700 hover:border-blue-500 cursor-pointer backdrop-blur-md h-[26rem] w-full flex flex-col overflow-hidden"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveProject(project)}
+              >
+                <img
+                  src={
+                    project.image_url ||
+                    "https://via.placeholder.com/400x300?text=No+Image"
+                  }
+                  alt="project"
+                  className="w-full h-[75%] object-cover"
+                />
+                <div className="flex flex-col flex-grow justify-between mt-0 px-3 py-2">
+                  <h3 className="text-lg font-semibold">{project.title}</h3>
+                  <p className="text-sm text-gray-400 line-clamp-2 mb-2">
+                    {project.description}
+                  </p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 text-gray-300">
+                      <Star className="w-4 h-4 text-yellow-400" />
+                      {project.average_rating || "N/A"}
+                    </span>
+                    {getStatus(project)}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Loader Ref */}
+          {hasMore && (
+            <div ref={loaderRef} className="text-center text-gray-500 py-6">
+              {loadingMore ? "Loading more..." : "Scroll to load more"}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modal View */}
       <AnimatePresence>
-        {active && typeof active === "object" && (
+        {activeProject && (
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm h-full w-full z-10"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-center items-center px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {active && typeof active === "object" && (
-          <div className="fixed inset-0 grid place-items-center z-[100]">
-            <motion.button
-              key={`button-${active.title}-${id}`}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.05 } }}
-              className="absolute top-2 right-2 lg:hidden bg-gray-100 rounded-full h-6 w-6 flex items-center justify-center shadow"
-              onClick={() => setActive(null)}
-            >
-              <CloseIcon />
-            </motion.button>
-
+          >
             <motion.div
-              layoutId={`card-${active.title}-${id}`}
-              ref={ref}
-              className="w-full max-w-[500px] h-full md:h-fit md:max-h-[90%] flex flex-col bg-white sm:rounded-3xl overflow-hidden shadow-2xl"
+              className="bg-[#0d1117] border border-gray-700 p-6 rounded-xl w-full max-w-2xl relative"
+              initial={{ y: 60, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 30, opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
             >
-              <motion.div layoutId={`image-${active.title}-${id}`}>
-                <img
-                  src={active.src}
-                  alt={active.title}
-                  className="w-full h-80 lg:h-80 object-cover object-top"
-                />
-              </motion.div>
-
-              <div>
-                <div className="flex justify-between items-start p-4 mt-15">
-                  <div>
-                    <motion.h3
-                      layoutId={`title-${active.title}-${id}`}
-                      className="font-bold text-black"
-                    >
-                      {active.title}
-                    </motion.h3>
-                    <motion.p
-                      layoutId={`description-${active.description}-${id}`}
-                      className="text-black"
-                    >
-                      {active.description}
-                    </motion.p>
-                  </div>
-
-                  <motion.a
-                    layoutId={`button-${active.title}-${id}`}
-                    href={active.ctaLink}
+              <button
+                onClick={() => setActiveProject(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <img
+                src={
+                  activeProject.image_url ||
+                  "https://via.placeholder.com/800x300?text=No+Image"
+                }
+                alt="Preview"
+                className="w-full h-[75%] max-h-96 object-cover mb-4"
+              />
+              <h2 className="text-2xl font-bold mb-2">{activeProject.title}</h2>
+              <p className="text-gray-300 mb-3">{activeProject.description}</p>
+              <div className="flex flex-wrap items-center justify-between text-sm text-gray-400 mb-2">
+                <span>Category: {activeProject.category}</span>
+                <span>Rating: {activeProject.average_rating || "N/A"}</span>
+              </div>
+              {activeProject.review_reason && (
+                <p className="text-red-400 text-sm">
+                  Rejected because: {activeProject.review_reason}
+                </p>
+              )}
+              <div className="mt-4 flex gap-3">
+                {activeProject.githubLink && (
+                  <a
+                    href={activeProject.githubLink}
                     target="_blank"
-                    className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm"
                   >
-                    {active.ctaText}
-                  </motion.a>
-                </div>
-
-                <div className="pt-4 relative px-4">
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-black text-xs md:text-sm lg:text-base h-40 md:h-fit pb-10 flex flex-col gap-4 overflow-auto [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]"
+                    GitHub
+                  </a>
+                )}
+                {activeProject.livePreviewUrl && (
+                  <a
+                    href={activeProject.livePreviewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm"
                   >
-                    {typeof active.content === "function"
-                      ? active.content()
-                      : active.content}
-                  </motion.div>
-                </div>
+                    Live Demo
+                  </a>
+                )}
               </div>
             </motion.div>
-          ))}
-        </div>
-      )}
-
-      {!limit && projects.length > 3 && (
-        <div className="mt-8 text-center">
-          <Link
-            to="/all-my-projects"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            View All My Projects
-            <ArrowLeft className="ml-3 h-5 w-5 rotate-180" />
-          </Link>
-        </div>
-      )}
-
-      <ul className="max-w-2xl mx-auto w-full divide-y divide-gray-300">
-        {displayedCards.map((card) => (
-          <motion.li
-            layoutId={`card-${card.title}-${id}`}
-            key={`card-${card.title}-${id}`}
-            onClick={() => setActive(card)}
-            className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 cursor-pointer"
-          >
-            <div className="flex gap-4 flex-col md:flex-row mt-2">
-              <motion.div layoutId={`image-${card.title}-${id}`}>
-                <img
-                  src={card.src}
-                  alt={card.title}
-                  className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
-                />
-              </motion.div>
-
-              <div>
-                <motion.h3
-                  layoutId={`title-${card.title}-${id}`}
-                  className="font-medium text-black text-center md:text-left"
-                >
-                  {card.title}
-                </motion.h3>
-                <motion.p
-                  layoutId={`description-${card.description}-${id}`}
-                  className="text-black text-center md:text-left"
-                >
-                  <CloseIcon className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="p-6">
-                <h3 className="text-3xl font-bold text-gray-900 mb-3">
-                  {activeProject.title}
-                </h3>
-                <div className="flex flex-wrap items-center text-gray-600 text-sm mb-4 space-x-4">
-                  <span className="flex items-center">
-                    <IconBook className="mr-1 h-4 w-4" /> {activeProject.category}
-                  </span>
-                  <span className="flex items-center">
-                    <IconStar className="mr-1 h-4 w-4 text-yellow-500" />{" "}
-                    {activeProject.average_rating ? activeProject.average_rating.toFixed(1) : "N/A"} (
-                    {activeProject.reviews ? activeProject.reviews.length : 0} reviews)
-                  </span>
-                  {activeProject.collaborators &&
-                    activeProject.collaborators.length > 0 && (
-                      <span className="flex items-center">
-                        <IconUsers className="mr-1 h-4 w-4" />{" "}
-                        {activeProject.collaborators.join(", ")}
-                      </span>
-                    )}
-                </div>
-
-            <motion.button
-              layoutId={`button-${card.title}-${id}`}
-              className="px-4 py-2 text-sm rounded-full font-bold bg-gray-100 hover:bg-green-500 hover:text-white text-black mt-4 md:mt-0"
-            >
-              {card.ctaText}
-            </motion.button>
-          </motion.li>
-        ))}
-      </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
-export const CloseIcon = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={`h-4 w-4 ${className}`}
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M18 6l-12 12" />
-    <path d="M6 6l12 12" />
-  </motion.svg>
-);
-
-// Card Data
-const cards = [
-  {
-    title: "Summertime Sadness",
-    description: "Lana Del Rey",
-    src: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-    ctaText: "View",
-    ctaLink: "https://ui.aceternity.com/templates",
-    content: () => (
-      <p className="text-black">
-        Lana Del Rey is celebrated for her melancholic style.
-      </p>
-    ),
-  },
-  {
-    title: "Mitran Di Chhatri",
-    description: "Babbu Maan",
-    src: "https://assets.aceternity.com/demos/babbu-maan.jpeg",
-    ctaText: "View",
-    ctaLink: "https://ui.aceternity.com/templates",
-    content: () => (
-      <p className="text-black">
-        Babbu Maan is known for emotional Punjabi lyrics.
-      </p>
-    ),
-  },
-  {
-    title: "For Whom The Bell Tolls",
-    description: "Metallica",
-    src: "https://assets.aceternity.com/demos/metallica.jpeg",
-    ctaText: "View",
-    ctaLink: "https://ui.aceternity.com/templates",
-    content: () => (
-      <p className="text-black">
-        Metallica pioneers thrash metal and aggressive rhythms.
-      </p>
-    ),
-  },
-  {
-    title: "Stairway To Heaven",
-    description: "Led Zeppelin",
-    src: "https://assets.aceternity.com/demos/led-zeppelin.jpeg",
-    ctaText: "View",
-    ctaLink: "https://ui.aceternity.com/templates",
-    content: () => (
-      <p className="text-black">
-        Led Zeppelin blended blues, folk, and hard rock.
-      </p>
-    ),
-  },
-  {
-    title: "Toh Phir Aao",
-    description: "Mustafa Zahid",
-    src: "https://assets.aceternity.com/demos/toh-phir-aao.jpeg",
-    ctaText: "View",
-    ctaLink: "https://ui.aceternity.com/templates",
-    content: () => (
-      <p className="text-black">
-        "Toh Phir Aao" captures longing and emotion powerfully.
-      </p>
-    ),
-  },
-];

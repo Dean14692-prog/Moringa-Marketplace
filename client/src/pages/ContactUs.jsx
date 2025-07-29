@@ -11,8 +11,8 @@ import {
   Shield,
   Zap,
   ChevronRight,
-  Home,
   Check,
+  Home,
 } from "lucide-react";
 import * as THREE from "three";
 import { Link } from "react-router-dom";
@@ -32,8 +32,18 @@ const ContactUs = () => {
   const [focusedField, setFocusedField] = useState("");
   const [typedText, setTypedText] = useState("");
   const [particleSystem, setParticleSystem] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const globeRef = useRef(null);
   const rendererRef = useRef(null);
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Initialize 3D background globe
   useEffect(() => {
@@ -102,7 +112,6 @@ const ContactUs = () => {
 
     initGlobe();
 
-    
     const phrases = [
       "Get In Touch",
       "Start Your Journey",
@@ -136,38 +145,8 @@ const ContactUs = () => {
       isDeleting ? 50 : 100
     );
 
-    // Floating particles
-    // const createParticles = () => {
-    //   const particles = [];
-    //   for (let i = 0; i < 30; i++) {
-    //     particles.push({
-    //       id: i,
-    //       x: Math.random() * 100,
-    //       y: Math.random() * 100,
-    //       size: Math.random() * 3 + 1,
-    //       speedX: (Math.random() - 0.5) * 0.3,
-    //       speedY: (Math.random() - 0.5) * 0.3,
-    //       opacity: Math.random() * 0.6 + 0.3,
-    //     });
-    //   }
-    //   return particles;
-    // };
-
-    // setParticleSystem(createParticles());
-
-    // const particleTimer = setInterval(() => {
-    //   setParticleSystem((prev) =>
-    //     prev.map((particle) => ({
-    //       ...particle,
-    //       x: (particle.x + particle.speedX + 100) % 100,
-    //       y: (particle.y + particle.speedY + 100) % 100,
-    //     }))
-    //   );
-    // }, 100);
-
     return () => {
       clearInterval(typeTimer);
-      // clearInterval(particleTimer);
       if (rendererRef.current && globeRef.current) {
         globeRef.current.removeChild(rendererRef.current.domElement);
         rendererRef.current.dispose();
@@ -216,12 +195,17 @@ const ContactUs = () => {
       value: "+254712 293 878",
       subtext: "Quick Support",
     },
-
     {
       icon: MapPin,
       label: "Address",
       value: "Ngong Lane Plaza, 1st Floor",
       subtext: "Nairobi, Kenya",
+    },
+    {
+      icon: Clock,
+      label: "Current Time",
+      value: currentTime.toLocaleTimeString(),
+      subtext: currentTime.toLocaleDateString(),
     },
   ];
 
@@ -238,9 +222,13 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#101F3C] via-slate-900 to-[#101F3C] text-white relative overflow-hidden">
-      {/* Floating Particles Background */}
-      <Link to="/login" className="inline-block ml-5 mt-5">
-        <Home className="w-6 h-6 text-gray-300 hover:text-cyan-400 transition-colors" />
+      {/* Home Icon Button */}
+      <Link
+        to="/"
+        className="absolute top-6 left-6 z-50 p-2 bg-slate-800/50 rounded-lg border border-slate-600 hover:border-orange-400 transition-colors duration-300 group"
+        aria-label="Home"
+      >
+        <Home className="w-6 h-6 text-orange-400 group-hover:text-white transition-colors duration-300" />
       </Link>
 
       <div className="absolute inset-0 pointer-events-none">
@@ -544,13 +532,13 @@ const ContactUs = () => {
                 <div className="flex justify-between">
                   <span>Monday - Friday</span>
                   <span className="text-orange-400 font-medium">
-                    8:00 AM - 8:00 PM
+                    8:00 AM - 5:00 PM
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Saturday</span>
                   <span className="text-orange-400 font-medium">
-                    9:00 AM - 5:00 PM
+                    9:00 AM - 12:00 PM
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -561,8 +549,6 @@ const ContactUs = () => {
             </div>
           </div>
         </div>
-
-        {/* Map Section */}
       </div>
 
       <style jsx>{`

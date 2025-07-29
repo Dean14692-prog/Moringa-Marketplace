@@ -16,16 +16,15 @@ import ContactUs from "./pages/ContactUs";
 import ContactMe from "./pages/ContactMe";
 import AdminDashboard from "./pages/AdminDashboard";
 import MerchUpload from "./pages/MerchUpload";
-import AnimatedStats from "./components/animatednumbers";
 import App11 from "./pages/Home";
-import AdminDashboard from "./pages/AdminDashboard";
+import MoriBotChat from "./components/MoriBotChat";
+
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  
   if (!googleClientId) {
     console.error('Google Client ID is not set in environment variables');
-  }
-  if (!googleClientId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-4">
         <div className="text-center">
@@ -53,34 +52,33 @@ function App() {
     >
       <GoogleOAuthContextProvider>
         <Routes>
-        <Route path="/" element={<Landingpage />} /> 
-        <Route path="/home" element={< App11 /> } />
+          <Route path="/" element={<Landingpage />} />
+          <Route path="/home" element={<App11 />} />
           <Route path="/signup" element={<SignupForm />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/projects" element={<ProjectLayout />} />
-        <Route path="/shop" element={<EcommerceLayout />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/my-projects" element={<MyProjects />} />
-
-        <Route path="/my-projects" element={<MyProjects />} />
-        <Route path="/upload-projects" element={<UploadProject />} />
-        <Route path="/upload" element={<UploadProject />} />
-        <Route path="/dashboard" element={<StudentDashBoard />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/contact-me" element={<ContactMe />} />
-        <Route path="/dashboard" element={<StudentDashBoard />}>
-          <Route path="upload-project" element={<UploadProject />} />
-        </Route>
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="upload-merch" element={<MerchUpload />} />
-        
-        
-
-          <Route path="*" element={<NotFound />} /> 
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/projects" element={<ProjectLayout />} />
+          <Route path="/shop" element={<EcommerceLayout />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/my-projects" element={<MyProjects />} />
+          <Route path="/upload-projects" element={<UploadProject />} />
+          <Route path="/upload" element={<UploadProject />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/contact-me" element={<ContactMe />} />
+          
+          <Route path="/dashboard" element={<StudentDashBoard />}>
+            <Route path="upload-project" element={<UploadProject />} />
+          </Route>
+          
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="upload-merch" element={<MerchUpload />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
-    </GoogleOAuthContextProvider>
+        <MoriBotChat />
+      </GoogleOAuthContextProvider>
     </GoogleOAuthProvider>
   );
 }
 
 export default App;
+
+
