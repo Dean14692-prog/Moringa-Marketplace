@@ -838,7 +838,7 @@ const ProjectLayout = () => {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+        const response = await fetch(`http://127.0..0.1:5555/api/users/profile`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -874,7 +874,7 @@ const ProjectLayout = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/projects`, {
+        const response = await fetch(`http://127.0..0.1:5555/api/projects`, {
           headers: {
             "Content-Type": "application/json",
           },

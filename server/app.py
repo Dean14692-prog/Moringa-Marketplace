@@ -12,6 +12,9 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 
+# Import Google OAuth blueprint
+from google_oauth import google_oauth_bp
+
 
 # --- Configuration ---
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -27,6 +30,30 @@ else:
     print("DEBUG: JWT_SECRET_KEY NOT loaded from .env. Using fallback.")
 
 app = Flask(__name__)
+
+# --- CORS Configuration ---
+# Configure CORS with specific origins and settings
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Enable CORS with explicit configuration
+cors = CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": CORS_ORIGINS,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+            "supports_credentials": True,
+            "expose_headers": ["Content-Type", "Authorization", "X-Total-Count"],
+        }
+    },
+    supports_credentials=True
+)
+
+# Remove the after_request handler - let Flask-CORS handle all CORS headers
 
 # --- App Configurations ---
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///moringa_marketplace.db")
@@ -45,13 +72,39 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'zip'}
 
-# CORS(app, resources={r"/api/*": {
-#     "origins": "*",
-#     "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
-#     "headers": ["Content-Type", "Authorization"],
-#     "supports_credentials": True
-# }})
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+# Configure CORS with specific origins and settings
+cors_config = {
+    "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+    "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "allow_headers": [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin"
+    ],
+    "expose_headers": [
+        "Content-Range",
+        "X-Total-Count",
+        "Authorization"
+    ],
+    "supports_credentials": True,
+    "max_age": 600  # Cache preflight request for 10 minutes
+}
+
+# Apply CORS to all routes with the same configuration
+CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": ["http://localhost:5173"],
+            "supports_credentials": True,
+            "allow_headers": ["Content-Type", "Authorization"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        }
+    },
+    supports_credentials=True
+)
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -701,6 +754,9 @@ class UserOrders(Resource):
         # Fetch orders that are not pending (i.e., completed payments)
         orders = Order.query.filter_by(user_id=current_user_id).filter(Order.payment_status != 'Pending').all()
         return [order.serialize() for order in orders], 200
+
+# --- Register Blueprints ---
+app.register_blueprint(google_oauth_bp, url_prefix='')
 
 # --- Register API Resources with the Blueprint ---
 api.add_resource(AuthRegister, '/auth/register')

@@ -33,7 +33,8 @@ class User(db.Model, SerializerMixin):
     first_name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    _password_hash = db.Column(db.String(128), nullable=False)
+    _password_hash = db.Column(db.String(128), nullable=True)
+    is_google_auth = db.Column(db.Boolean, default=False, nullable=False)
     bio = db.Column(db.Text)
     profile_pic = db.Column(db.String(255))
     github = db.Column(db.String(255))
@@ -64,7 +65,8 @@ class User(db.Model, SerializerMixin):
             'skills': self.skills,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'role': self.role.name if self.role else None
+            'role': self.role.name if self.role else None,
+            'is_google_auth': self.is_google_auth
         }
 
     def set_password(self, password):

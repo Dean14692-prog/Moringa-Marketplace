@@ -39,7 +39,7 @@ export function StudentDashBoard() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:5555/api/user/projects", {
+      const res = await fetch("http://localhost:5555/users/projects", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
