@@ -702,17 +702,24 @@ const Footer = () => {
             {/* Map Container */}
             <div className="relative rounded-lg overflow-hidden border-2 border-slate-600 hover:border-orange-500 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent z-10"></div>
-              <div className="rounded-lg overflow-hidden shadow-lg">
+              <div className="relative w-full h-[300px] rounded-lg overflow-hidden shadow-lg z-10">
                 <iframe
                   title="Moringa School Location"
-                  src="https://www.google.com/maps?q=Moringa+School,+Nairobi,+Kenya&hl=en&z=16&output=embed"
+                  src="https://maps.google.com/maps?q=Moringa+School,+Nairobi,+Kenya&z=16&output=embed"
                   width="100%"
-                  height="300"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
+                  height="100%"
+                  style={{
+                    border: 0,
+                    width: "100%",
+                    height: "100%",
+                    pointerEvents: "auto",
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                  allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                />
+                ></iframe>
               </div>
             </div>
           </div>

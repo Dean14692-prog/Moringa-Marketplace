@@ -436,3 +436,62 @@ class OrderItem(db.Model, SerializerMixin):
         
         db.session.delete(self)
         db.session.commit()
+
+
+class Payment(db.Model, SerializerMixin):
+    __tablename__ = 'payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    
+    # M-Pesa specific fields
+    mpesa_checkout_request_id = db.Column(db.String(255), unique=True, nullable=True)
+    merchant_request_id = db.Column(db.String(255), unique=True, nullable=True)
+    mpesa_receipt_number = db.Column(db.String(255), unique=True, nullable=True) # Will be populated on successful callback
+    transaction_date = db.Column(db.String(255), nullable=True) # Date from M-Pesa callback
+    amount_paid_callback = db.Column(db.Float, nullable=True) # Actual amount from callback, for reconciliation
+    phone_number_callback = db.Column(db.String(20), nullable=True) # Phone number from callback
+
+    status = db.Column(db.String(50), default='PENDING', nullable=False) # e.g., PENDING, PENDING_MPESA_STK, COMPLETED, FAILED, FAILED_INITIATION
+    result_code = db.Column(db.Integer, nullable=True) # M-Pesa ResultCode
+    result_desc = db.Column(db.String(500), nullable=True) # M-Pesa ResultDesc
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    order = db.relationship('Order', backref=db.backref('payments', lazy=True))
+    user = db.relationship('User', backref=db.backref('payments', lazy=True))
+
+    serialize_rules = (
+        '-order.payments', '-user.payments', # Prevent circular serialization
+        'created_at', 'updated_at'
+    )
+
+    def __repr__(self):
+        return f"<Payment {self.id} - Order {self.order_id} - Status: {self.status}>"
+
+    @classmethod
+    def get_by_id(cls, payment_id):
+        return cls.query.get(payment_id)
+
+    @classmethod
+    def create(cls, **kwargs):
+        new_payment = cls(**kwargs)
+        db.session.add(new_payment)
+        db.session.commit()
+        db.session.refresh(new_payment)
+        return new_payment
+
+    def update(self, data):
+        for key, value in data.items():
+            setattr(self, key, value)
+        db.session.commit()
+        db.session.refresh(self)
+        return self
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()

@@ -14,15 +14,16 @@ import ContactUs from "./pages/ContactUs";
 import ContactMe from "./pages/ContactMe";
 import AdminDashboard from "./pages/AdminDashboard";
 import MerchUpload from "./pages/MerchUpload";
-import AnimatedStats from "./components/animatednumbers";
 import App11 from "./pages/Home";
+import MoriBotChat from "./components/MoriBotChat";
+
 
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Landingpage />} /> 
-        <Route path="/home" element={< App11 /> } />
+        <Route path="/" element={<Landingpage />} />
+        <Route path="/home" element={<App11 />} />
         <Route path="/signup" element={<SignupForm />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/projects" element={<ProjectLayout />} />
@@ -37,13 +38,14 @@ function App() {
         </Route>
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="upload-merch" element={<MerchUpload />} />
-        
-        
 
-        <Route path="*" element={<NotFound />} /> 
+        <Route path="*" element={<NotFound />} />
       </Routes>
+      <MoriBotChat />
     </>
   );
 }
 
 export default App;
+
+
