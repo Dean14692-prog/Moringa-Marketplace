@@ -749,13 +749,14 @@
 ###########################################################################################
 
 # app.py
-
+from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, PaymentLog
+from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, Contact, ContactStatus, PaymentLog
 import os
+
 import json
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta, datetime
@@ -764,6 +765,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import cohere # Added Cohere import
 from mpesa import lipa_na_mpesa_online
+
 
 # --- Configuration ---
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -782,6 +784,39 @@ else:
     print("DEBUG: JWT_SECRET_KEY NOT loaded from .env. Using fallback.")
 
 app = Flask(__name__)
+# Configure CORS with specific origins and settings
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5555",
+    "http://127.0.0.1:5555"
+]
+
+# Enable CORS with explicit configuration
+app.config['CORS_HEADERS'] = 'Content-Type'
+app.config['CORS_SUPPORTS_CREDENTIALS'] = True
+
+cors = CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": ["http://localhost:5173"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+            "expose_headers": ["Content-Type"]
+        },
+        r"/*": {
+            "origins": CORS_ORIGINS,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+            "expose_headers": ["Content-Type"]
+        }
+    },
+    supports_credentials=True
+)
+
 
 # --- App Configurations ---
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///moringa_marketplace.db")
@@ -800,7 +835,8 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'zip'}
 
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+# CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -816,18 +852,37 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def admin_required():
-    """Decorator to ensure only admin users can access a route."""
-    def wrapper(fn):
+# def admin_required():
+#     """Decorator to ensure only admin users can access a route."""
+#     def wrapper(fn):
+#         @jwt_required()
+#         def decorator(*args, **kwargs):
+#             current_user_id = get_jwt_identity()
+#             current_user = User.get_by_id(current_user_id)
+#             if not current_user or (current_user.role and current_user.role.name != 'admin'):
+#                 return {"msg": "Administration rights required"}, 403
+#             return fn(*args, **kwargs)
+#         return decorator
+#     return wrapper
+def admin_required(fn=None):
+    """Decorator to ensure only admin users can access a route.
+    Works with both function-based and method-based views.
+    """
+    def decorator(fn):
+        @wraps(fn)
         @jwt_required()
-        def decorator(*args, **kwargs):
+        def wrapped(*args, **kwargs):
             current_user_id = get_jwt_identity()
             current_user = User.get_by_id(current_user_id)
-            if not current_user or (current_user.role and current_user.role.name != 'admin'):
+            if not current_user or not current_user.role or current_user.role.name.lower() != 'admin':
                 return {"msg": "Administration rights required"}, 403
             return fn(*args, **kwargs)
+        return wrapped
+    
+    # Handle both @admin_required and @admin_required() syntax
+    if fn is None:
         return decorator
-    return wrapper
+    return decorator(fn)
 
 # --- Static File Serving ---
 @app.route('/uploads/<filename>')
@@ -944,9 +999,12 @@ class AuthLogin(Resource):
             return {"access_token": access_token, "refresh_token": refresh_token, "role": user.role.name if user.role else "user"}, 200
         return {"msg": "Invalid credentials"}, 401
 
+###########################################################################################
+
 
 class UserProfile(Resource):
     """Manages the currently authenticated user's profile."""
+
     @jwt_required()
     def get(self):
         current_user_id = get_jwt_identity()
@@ -954,20 +1012,8 @@ class UserProfile(Resource):
             user = User.get_by_id(current_user_id)
             if not user:
                 return {"msg": "User profile not found"}, 404
-            
-            return {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "role": user.role.name if user.role else "user",
-                "bio": user.bio,
-                "profile_pic": user.profile_pic,
-                "github": user.github,
-                "linkedin": user.linkedin,
-                "skills": user.skills
-            }, 200
+
+            return user.serialize(), 200
         except Exception as e:
             db.session.rollback()
             print(f"Error fetching user profile for ID {current_user_id}: {e}")
@@ -975,25 +1021,122 @@ class UserProfile(Resource):
 
     @jwt_required()
     def patch(self):
+        """Partially updates the authenticated user's profile."""
         current_user_id = get_jwt_identity()
         user = User.get_by_id(current_user_id)
         if not user:
             return {"msg": "User profile not found"}, 404
 
         data = request.get_json()
-        user.update(
-            username=data.get('username', user.username),
-            first_name=data.get('first_name', user.first_name),
-            last_name=data.get('last_name', user.last_name),
-            email=data.get('email', user.email),
-            bio=data.get('bio', user.bio),
-            profile_pic=data.get('profile_pic', user.profile_pic),
-            github=data.get('github', user.github),
-            linkedin=data.get('linkedin', user.linkedin),
-            skills=data.get('skills', user.skills)
-        )
-        return user.serialize(), 200
 
+        # ✅ Optional: Prevent email from being updated at all
+        # if 'email' in data:
+        #     data.pop('email')
+
+        # ✅ Check if new email is already in use by another user
+        if 'email' in data:
+            existing_user = User.query.filter_by(email=data['email']).first()
+            if existing_user and existing_user.id != user.id:
+                return {"msg": "Email is already in use by another account."}, 400
+
+        # ✅ Handle role if sent as a string like "student"
+        if 'role' in data:
+            role_name = data.pop('role')
+            role = Role.query.filter_by(name=role_name).first()
+            if not role:
+                return {"msg": f"Role '{role_name}' not found."}, 400
+            user.role = role
+
+        # ✅ Convert skills list to comma-separated string
+        if 'skills' in data and isinstance(data['skills'], list):
+            data['skills'] = ','.join(data['skills'])
+
+        # ✅ Rename frontend camelCase keys to backend snake_case
+        if 'profilePicture' in data:
+            data['profile_pic'] = data.pop('profilePicture')
+        if 'joinDate' in data:
+            data['join_date'] = data.pop('joinDate')
+        if 'coverPhoto' in data:
+            data['cover_photo'] = data.pop('coverPhoto')
+        if 'cvFile' in data:
+            data['cv_file'] = data.pop('cvFile')
+        if 'cvFileName' in data:
+            data['cv_file_name'] = data.pop('cvFileName')
+
+        # ✅ Remove DB-managed and protected fields
+        for field in ['id', 'created_at', 'updated_at']:
+            data.pop(field, None)
+
+        try:
+            user.update(**data)
+            return user.serialize(), 200
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating user profile for ID {current_user_id}: {e}")
+            return {"msg": "An unexpected error occurred while updating user profile."}, 500
+
+    def options(self):
+        return {'Allow': 'GET,PATCH'}, 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,PATCH',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
+
+
+
+
+#########################################################################################
+# class UserProject(Resource):
+#     """Manages projects uploaded by the current user."""
+#     @jwt_required()
+#     def get(self):
+#         current_user_id = get_jwt_identity()
+#         current_user = User.get_by_id(current_user_id)
+#         if not current_user:
+#             return {"msg": "User not found"}, 404
+#         projects = Project.query.filter_by(uploaded_by=current_user.username).all()
+#         return [project.serialize() for project in projects], 200
+
+#     @jwt_required()
+#     def delete(self):
+#         current_user_id = get_jwt_identity()
+#         current_user = User.get_by_id(current_user_id)
+#         if not current_user:
+#             return {"msg": "User not found"}, 404
+#         project_id = request.args.get('project_id')
+#         project = Project.get_by_id(project_id)
+#         if not project:
+#             return {"msg": "Project not found"}, 404
+#         if project.uploaded_by != current_user.username:
+#             return {"msg": "You are not authorized to delete this project"}, 403
+#         project.delete()
+#         return {"msg": "Project deleted successfully"}, 204
+
+#     @jwt_required()
+#     def patch(self):
+#         current_user_id = get_jwt_identity()
+#         current_user = User.get_by_id(current_user_id)
+#         if not current_user:
+#             return {"msg": "User not found"}, 404
+#         project_id = request.args.get('project_id')
+#         project = Project.get_by_id(project_id)
+#         if not project:
+#             return {"msg": "Project not found"}, 404
+#         if project.uploaded_by != current_user.username:
+#             return {"msg": "You are not authorized to update this project"}, 403
+#         data = request.get_json()
+#         project.update(
+#             title=data.get('title', project.title),
+#             category=data.get('category', project.category),
+#             description=data.get('description', project.description),
+#             tech_stack=data.get('tech_stack', project.tech_stack),
+#             github_link=data.get('github_link', project.github_link),
+#             live_preview_url=data.get('live_preview_url', project.live_preview_url),
+#             image_url=data.get('image_url', project.image_url),
+#             isForSale=data.get('isForSale', project.isForSale),
+#             price=data.get('price', project.price),
+#         )
+#         return project.serialize(), 200
 
 class UserProject(Resource):
     """Manages projects uploaded by the current user."""
@@ -1003,8 +1146,24 @@ class UserProject(Resource):
         current_user = User.get_by_id(current_user_id)
         if not current_user:
             return {"msg": "User not found"}, 404
+        
         projects = Project.query.filter_by(uploaded_by=current_user.username).all()
-        return [project.serialize() for project in projects], 200
+        
+        serialized_projects = []
+        for project in projects:
+            project_data = project.serialize()
+            
+            # Calculate average rating if reviews exist
+            if project.reviews:
+                total_rating = sum(review.rating for review in project.reviews)
+                average_rating = round(total_rating / len(project.reviews), 1)
+                project_data['average_rating'] = average_rating
+            else:
+                project_data['average_rating'] = None
+            
+            serialized_projects.append(project_data)
+        
+        return serialized_projects, 200
 
     @jwt_required()
     def delete(self):
@@ -1034,7 +1193,7 @@ class UserProject(Resource):
         if project.uploaded_by != current_user.username:
             return {"msg": "You are not authorized to update this project"}, 403
         data = request.get_json()
-        project.update(
+        updated_project = project.update(
             title=data.get('title', project.title),
             category=data.get('category', project.category),
             description=data.get('description', project.description),
@@ -1045,7 +1204,19 @@ class UserProject(Resource):
             isForSale=data.get('isForSale', project.isForSale),
             price=data.get('price', project.price),
         )
-        return project.serialize(), 200
+        
+        # Include average rating in the response
+        project_data = updated_project.serialize()
+        if updated_project.reviews:
+            total_rating = sum(review.rating for review in updated_project.reviews)
+            average_rating = round(total_rating / len(updated_project.reviews), 1)
+            project_data['average_rating'] = average_rating
+        else:
+            project_data['average_rating'] = None
+            
+        return project_data, 200
+    
+#############################################################################################
 
 
 class ProjectUpload(Resource):
@@ -1681,8 +1852,148 @@ def logs():
         }
         for log in logs
     ])
+
+class PublicUserProfile(Resource):
+    def get(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            return {"error": "User not found"}, 404
+
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "bio": user.bio,
+            # Add more public-safe fields if needed
+        }, 200
+    
+
+
+# --- Contact Form Route ---
+@app.route('/api/contact', methods=['OPTIONS', 'POST'])
+@cross_origin(origins=['http://localhost:5173'], 
+             methods=['POST', 'OPTIONS'],
+             allow_headers=['Content-Type', 'Authorization'],
+             supports_credentials=True)
+def handle_contact():
+    if request.method == 'OPTIONS':
+        # Handle preflight request
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+        
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            print("Received contact form data:", data)  # Debug log
+            
+            # Validate required fields
+            required_fields = ['name', 'email', 'subject', 'message']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({'message': f'Missing required field: {field}'}), 400
+            
+            # Create new contact submission
+            contact = Contact.create(
+                name=data['name'],
+                email=data['email'],
+                phone=data.get('phone', ''),
+                subject=data['subject'],
+                message=data['message'],
+                course=data.get('course', '')
+            )
+            
+            response = {
+                'message': 'Thank you for your message! We will get back to you soon.',
+                'contact_id': contact.id
+            }
+            print("Sending response:", response)  # Debug log
+            return jsonify(response), 201
+            
+        except Exception as e:
+            error_msg = f'Error processing contact form: {str(e)}'
+            print(error_msg)  # Debug log
+            return jsonify({'message': 'An error occurred while processing your request'}), 500
+            return {'message': 'An error occurred while processing your request'}, 500
+
+# --- Admin Contact Management ---
+class AdminContactManagement(Resource):
+    @jwt_required()
+    @admin_required
+    def get(self):
+        try:
+            status = request.args.get('status')
+            contacts = Contact.get_all(status=ContactStatus[status.upper()] if status else None)
+            return jsonify([contact.to_dict() for contact in contacts])
+        except Exception as e:
+            print(f'Error fetching contacts: {str(e)}')
+            return {'message': 'Failed to fetch contacts'}, 500
+    
+    @jwt_required()
+    @admin_required
+    def patch(self, contact_id):
+        try:
+            data = request.get_json()
+            contact = Contact.get_by_id(contact_id)
+            
+            if not contact:
+                return {'message': 'Contact not found'}, 404
+                
+            if 'status' in data:
+                try:
+                    contact.status = ContactStatus[data['status'].upper()]
+                except KeyError:
+                    return {'message': 'Invalid status'}, 400
+                    
+            if 'notes' in data:
+                contact.notes = data['notes']
+                
+            contact.update()
+            return contact.to_dict(), 200
+            
+        except Exception as e:
+            print(f'Error updating contact: {str(e)}')
+            return {'message': 'Failed to update contact'}, 500
+
+########################################################################################
+
+class UserByUsername(Resource):
+    """Manages fetching a user's profile by their username."""
+    def get(self, username):
+        try:
+            user = User.get_by_username(username)
+            if not user:
+                return {"msg": "User profile not found"}, 404
+            
+            # The current user profile endpoint returns a dictionary.
+            # Ensure your new endpoint returns the same format.
+            return {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "role": user.role.name if user.role else "user",
+                "bio": user.bio,
+                "profile_pic": user.profile_pic,
+                "github": user.github,
+                "linkedin": user.linkedin,
+                "skills": user.skills
+            }, 200
+        except Exception as e:
+            print(f"Error fetching user profile for username {username}: {e}")
+            return {"msg": "An unexpected error occurred while fetching user profile."}, 500
+
+
 ########################################################################################
 # --- Register API Resources with the Blueprint ---
+# api.add_resource(UserProfile, '/api/users/profile')
+api.add_resource(AdminContactManagement, '/api/admin/contacts', '/api/admin/contacts/<int:contact_id>')
+api.add_resource(PublicUserProfile, '/users/profile/<int:user_id>')
 api.add_resource(ProjectReviews, '/projects/<int:project_id>/reviews', '/projects/<int:project_id>/reviews/<int:review_id>')
 api.add_resource(Chatbot, '/ask') # Registered the new Chatbot resource
 api.add_resource(AuthRegister, '/auth/register')
@@ -1699,6 +2010,8 @@ api.add_resource(AdminProjectStats, '/admin/stats/projects')
 api.add_resource(MerchandiseCatalog, '/merchandise')
 api.add_resource(UserCart, '/cart', '/cart/<int:item_id>')
 api.add_resource(UserOrders, '/orders')
+api.add_resource(UserByUsername, '/users/<string:username>') # Add this line
+
 
 
 # --- Register the API Blueprint with the Flask App ---

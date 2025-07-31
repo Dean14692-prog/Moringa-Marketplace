@@ -180,7 +180,7 @@ export function StudentDashBoard() {
     },
     {
       label: "Analytics",
-      href: "/analytics",
+      href: "/student-profile",
       icon: <IconChartBar className="h-5 w-5 shrink-0" />,
     },
   ];

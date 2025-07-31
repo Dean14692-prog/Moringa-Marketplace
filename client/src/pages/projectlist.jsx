@@ -1,33 +1,61 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Star,
   X,
-  User,
-  Calendar,
-  Tag,
   Search,
   Home,
   LogOut,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Users,
+  User,
+  Briefcase,
   ExternalLink,
   Github,
-  DollarSign,
-  Briefcase,
+  Calendar,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Masonry from "react-masonry-css";
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Error caught by boundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 bg-red-100 text-red-800 rounded-lg">
+          <h2 className="font-bold">Something went wrong.</h2>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-teal-500 text-white rounded"
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const ProjectLayout = () => {
   const [selectedProject, setSelectedProject] = useState(null);
-  const [hoveredCard, setHoveredCard] = useState(null);
   const [newReview, setNewReview] = useState({
     rating: 5,
     comment: "",
-    reviewerName: "Anonymous User", // Default value, will be updated by user profile
+    reviewerName: "Anonymous User",
   });
-  const [hoverRating, setHoverRating] = useState(0); // New state for star hover effect
+  const [hoverRating, setHoverRating] = useState(0);
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [userEmail, setUserEmail] = useState(null);
@@ -36,17 +64,43 @@ const ProjectLayout = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState({ text: "", type: "" });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const navigate = useNavigate();
+  const API_BASE_URL = "http://127.0.0.1:5555";
+  const reviewSectionRef = useRef(null);
+  const gridContainerRef = useRef(null);
 
-  const API_BASE_URL = "http://127.0.0.1:5555"; // Your API base URL
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/projects`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-  const projectHeightsRef = useRef({});
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-  const getRandomHeight = () => {
-    const minHeight = 250;
-    const maxHeight = 400;
-    return Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+      const data = await response.json();
+      setProjects(
+        data.map((project) => ({
+          ...project,
+          title: project.title || "Untitled Project",
+          category: project.category || "Uncategorized",
+          isApproved: project.isApproved || false,
+        }))
+      );
+    } catch (err) {
+      setError("Failed to load projects.");
+      console.error("Error fetching projects:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -74,7 +128,7 @@ const ProjectLayout = () => {
           setUserRole(userData.role);
           setNewReview((prev) => ({
             ...prev,
-            reviewerName: userData.username, // Set reviewerName from fetched username
+            reviewerName: userData.username,
           }));
         } else {
           localStorage.removeItem("access_token");
@@ -85,7 +139,6 @@ const ProjectLayout = () => {
           navigate("/login");
         }
       } catch (error) {
-        // Handle network errors or other issues
         console.error("Error fetching user profile:", error);
         navigate("/login");
       } finally {
@@ -97,38 +150,8 @@ const ProjectLayout = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/projects`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const projectsWithHeights = data.map((project) => {
-          if (!projectHeightsRef.current[project.id]) {
-            projectHeightsRef.current[project.id] = getRandomHeight();
-          }
-          return project;
-        });
-        setProjects(projectsWithHeights);
-      } catch (err) {
-        setError("Failed to load projects.");
-        console.error("Error fetching projects:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProjects();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -141,6 +164,8 @@ const ProjectLayout = () => {
 
   const filteredAndApprovedProjects = useMemo(() => {
     return projects.filter((project) => {
+      if (!project || !project.title) return false;
+
       const matchesCategory =
         selectedFilterCategory === "All" ||
         project.category === selectedFilterCategory;
@@ -151,9 +176,6 @@ const ProjectLayout = () => {
     });
   }, [projects, selectedFilterCategory, searchTerm]);
 
-  // Projects to display are already filtered and approved
-  const projectsToDisplay = filteredAndApprovedProjects;
-
   const handleReviewChange = (e) => {
     const { name, value } = e.target;
     setNewReview((prevReview) => ({
@@ -162,12 +184,20 @@ const ProjectLayout = () => {
     }));
   };
 
-  const handleAddReview = async () => {
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    setIsSubmittingReview(true);
+
     if (!userEmail) {
-      alert("Please log in to submit a review.");
+      setMessage({ text: "Please log in to submit a review.", type: "error" });
+      setIsSubmittingReview(false);
       return;
     }
-    if (!selectedProject) return;
+
+    if (!selectedProject) {
+      setIsSubmittingReview(false);
+      return;
+    }
 
     try {
       const accessToken = localStorage.getItem("access_token");
@@ -182,543 +212,514 @@ const ProjectLayout = () => {
           body: JSON.stringify({
             rating: parseInt(newReview.rating),
             comment: newReview.comment,
-            reviewerName: username, // Ensure reviewerName is sent from state
+            reviewerName: username,
           }),
         }
       );
 
       if (response.ok) {
         const updatedProject = await response.json();
+        if (!updatedProject.title) {
+          fetchProjects();
+          return;
+        }
         setProjects((prevProjects) =>
           prevProjects.map((proj) =>
             proj.id === updatedProject.id ? updatedProject : proj
           )
         );
-        setSelectedProject((prevSelected) =>
-          prevSelected.id === updatedProject.id ? updatedProject : prevSelected
-        );
         setNewReview({
           rating: 5,
           comment: "",
-          reviewerName: username, // Reset with current username
+          reviewerName: username,
         });
-        alert("Review added successfully!");
+        setMessage({ text: "Review added successfully!", type: "success" });
       } else {
         const errorData = await response.json();
-        alert(`Failed to add review: ${errorData.msg || response.statusText}`);
+        setMessage({
+          text: `Failed to add review: ${errorData.msg || response.statusText}`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error adding review:", error);
-      alert("An error occurred while adding the review. Please try again.");
-    }
-  };
-
-  const getAverageRating = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
-    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-    return (totalRating / reviews.length).toFixed(1);
-  };
-
-  const getStatusBadge = (project) => {
-    if (project.isApproved) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-          <CheckCircle className="w-4 h-4 mr-1" /> Approved
-        </span>
-      );
-    } else if (project.review_reason) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-          <XCircle className="w-4 h-4 mr-1" /> Rejected
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-          <Clock className="w-4 h-4 mr-1" /> Pending
-        </span>
-      );
-    }
-  };
-
-  const getRatingDistribution = (reviews) => {
-    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    if (!reviews || reviews.length === 0) return distribution;
-
-    reviews.forEach((review) => {
-      if (review.rating >= 1 && review.rating <= 5) {
-        distribution[review.rating]++;
+      setMessage({
+        text: "An error occurred while adding the review. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSubmittingReview(false);
+      if (reviewSectionRef.current) {
+        reviewSectionRef.current.scrollIntoView({ behavior: "smooth" });
       }
-    });
-    return distribution;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <p className="text-red-500 text-lg">{error}</p>
-      </div>
-    );
-  }
-
-  const getHomeLink = () => {
-    if (userRole === "admin") {
-      return "/admin-dashboard";
-    } else if (userRole === "student") {
-      return "/dashboard";
-    } else {
-      return "/home"; // Default home if role is unknown or not set
     }
   };
+
+  const renderStarRating = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`w-4 h-4 ${
+            i <= rating ? "text-yellow-400 fill-current" : "text-gray-300"
+          }`}
+        />
+      );
+    }
+    return <div className="flex">{stars}</div>;
+  };
+
+  const renderReviewStars = (rating, setRating, setHover) => {
+    return [1, 2, 3, 4, 5].map((star) => (
+      <Star
+        key={star}
+        className={`cursor-pointer w-6 h-6 transition-colors duration-200 ${
+          star <= (hoverRating || newReview.rating)
+            ? "text-yellow-400 fill-current"
+            : "text-gray-300"
+        }`}
+        onClick={() => setRating(star)}
+        onMouseEnter={() => setHover(star)}
+        onMouseLeave={() => setHover(0)}
+      />
+    ));
+  };
+
+  const allCategories = useMemo(() => {
+    const categories = new Set(projects.map((project) => project.category));
+    return ["All", ...Array.from(categories)].filter(Boolean);
+  }, [projects]);
+
+  const renderMessage = () => {
+    if (!message.text) return null;
+    const style =
+      message.type === "success"
+        ? "bg-green-100 text-green-800"
+        : "bg-red-100 text-red-800";
+    return (
+      <div className={`p-4 rounded-lg mt-4 text-center ${style}`}>
+        {message.text}
+      </div>
+    );
+  };
+
+  const handleCloseProjectModal = () => {
+    setSelectedProject(null);
+    setMessage({ text: "", type: "" });
+  };
+
+  const breakpointColumnsObj = {
+    default: 5,
+    1600: 4,
+    1280: 3,
+    1024: 2,
+    640: 1,
+  };
+
+  const homeLink =
+    userRole === "admin"
+      ? "/admin-dashboard"
+      : userRole === "student"
+      ? "/dashboard"
+      : "/home";
+  const homeTooltip =
+    userRole === "admin"
+      ? "Admin Dashboard"
+      : userRole === "student"
+      ? "Student Dashboard"
+      : "Home";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Fixed Sidebar */}
-      <div className="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-4 fixed left-0 top-0 h-full z-40 shadow-sm">
-        <nav className="flex flex-col gap-2">
-          <Link
-            to={getHomeLink()}
-            className="p-3 rounded-full bg-teal-500 text-white hover:bg-teal-700 transition-colors"
-          >
-            <Home size={20} />
-          </Link>
-        </nav>
-
-        <div className="mt-auto flex flex-col gap-2">
-          {username && (
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs text-gray-600">
-              {username.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            className="p-3 rounded-full bg-teal-500 hover:bg-teal-600 text-white transition-colors" // Changed text-black to text-white for better contrast
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 ml-20">
-        {/* Header/Navbar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 shadow-sm">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 hidden sm:block">
-              Projects
-            </h1>
-            <div className="flex-1 max-w-2xl mx-auto">
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
+        {/* Fixed Header */}
+        <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-sm z-30">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex-1 max-w-3xl mx-auto flex items-center space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search projects..."
-                  className="w-full pl-12 pr-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                   value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                  }}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
+
+              <select
+                value={selectedFilterCategory}
+                onChange={(e) => setSelectedFilterCategory(e.target.value)}
+                className="w-auto px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                {allCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
-            {/* You could add category filters here if desired */}
           </div>
         </header>
 
-        {/* Projects Grid */}
-        <main className="px-6 py-6">
-          <div className="max-w-7xl mx-auto">
-            {filteredAndApprovedProjects.length === 0 && (
-              <p className="text-center text-gray-600 text-xl mt-10">
-                No projects found matching your criteria.
-              </p>
-            )}
+        <div className="flex">
+          {/* Sidebar */}
+          <aside className="fixed left-0 top-0 h-full w-16 md:w-20 bg-white dark:bg-gray-800 shadow-lg z-20 pt-16">
+            <nav className="flex flex-col p-2 space-y-2">
+              <Link
+                to={homeLink}
+                className="group relative flex items-center justify-center p-3 text-sm font-medium text-gray-900 dark:text-gray-50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Home className="w-5 h-5 text-teal-500" />
+                <span className="absolute left-full ml-4 whitespace-nowrap hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
+                  {homeTooltip}
+                </span>
+              </Link>
 
-            <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6 space-y-6">
-              {projectsToDisplay.map((project) => (
-                <div
-                  key={project.id}
-                  className="relative break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
-                  onMouseEnter={() => setHoveredCard(project.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  onClick={() => setSelectedProject(project)}
-                  style={{
-                    height: `${projectHeightsRef.current[project.id]}px`,
-                  }}
+              <Link
+                to={`/profile/${username}`}
+                className="group relative flex items-center justify-center p-3 text-sm font-medium text-gray-900 dark:text-gray-50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <User className="w-5 h-5" />
+                <span className="absolute left-full ml-4 whitespace-nowrap hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
+                  Profile
+                </span>
+              </Link>
+
+              {userRole === "admin" && (
+                <Link
+                  to="/admin-dashboard"
+                  className="group relative flex items-center justify-center p-3 text-sm font-medium text-gray-900 dark:text-gray-50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="relative w-full h-full overflow-hidden rounded-2xl">
-                    <img
-                      src={
-                        project.image_url ||
-                        "https://via.placeholder.com/400x400?text=No+Image"
-                      }
-                      alt={project.title}
-                      className={`w-full h-full object-cover transition-all duration-300 ${
-                        hoveredCard === project.id
-                          ? "brightness-75 scale-105"
-                          : "brightness-100 scale-100"
-                      }`}
-                    />
+                  <Briefcase className="w-5 h-5" />
+                  <span className="absolute left-full ml-4 whitespace-nowrap hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
+                    Admin Dashboard
+                  </span>
+                </Link>
+              )}
+              <button
+                onClick={handleLogout}
+                className="group relative flex items-center justify-center p-3 text-sm font-medium text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900 transition-colors w-full"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="absolute left-full ml-4 whitespace-nowrap hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
+                  Logout
+                </span>
+              </button>
+            </nav>
+          </aside>
 
-                    <div className="h-screen absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    <div className="absolute inset-x-0 bottom-0 p-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <h3 className="text-lg font-bold text-teal-500 mb-1 drop-shadow-sm">
-                        {project.title}
-                      </h3>
-                      <p className="text-teal-500 font-bold text-sm drop-shadow-sm">
-                        By: {project.uploaded_by}
-                      </p>
-
-                      {project.reviews && project.reviews.length > 0 && (
-                        <div className="flex items-center mt-2">
-                          <Star className="w-4 h-4 text-amber-400 fill-current" />
-                          <span className="text-white text-sm ml-1 drop-shadow-sm">
-                            {getAverageRating(project.reviews)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <span className="absolute top-3 right-3 bg-teal-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {project.category}
-                    </span>
-                  </div>
+          {/* Main Content */}
+          <div className="flex-1 pl-16 md:pl-20">
+            <main className="pt-16 pb-12 px-4">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent"></div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </main>
-
-        {/* Project Details Modal */}
-        {selectedProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full mx-auto my-2 flex flex-col lg:flex-row overflow-hidden">
-              <div className="relative lg:w-1/2 h-80 lg:h-auto">
-                <img
-                  src={
-                    selectedProject.image_url ||
-                    "https://via.placeholder.com/600x400?text=No+Image"
-                  }
-                  alt={selectedProject.title}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  onClick={() => setSelectedProject(null)}
-                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg text-gray-700 hover:bg-white transition-all duration-200"
+              ) : error ? (
+                <div className="text-center text-red-500 text-lg">{error}</div>
+              ) : filteredAndApprovedProjects.length === 0 ? (
+                <div className="text-center text-gray-500 text-lg">
+                  No projects found. Try adjusting your search or filters.
+                </div>
+              ) : (
+                <Masonry
+                  breakpointCols={breakpointColumnsObj}
+                  className="flex w-auto -ml-4"
+                  columnClassName="pl-4 bg-clip-padding"
                 >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="lg:w-1/2 p-4 flex flex-col">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                  {selectedProject.title}
-                </h2>
-                <div className="flex flex-wrap items-center text-gray-600 text-sm mb-6 gap-y-2">
-                  <div className="flex items-center mr-6">
-                    <User className="w-4 h-4 mr-2" />
-                    <span>By: {selectedProject.uploaded_by}</span>
-                  </div>
-                  <div className="flex items-center mr-6">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>{selectedProject.date}</span>
-                  </div>
-                  <div className="flex items-center mr-6">
-                    <Tag className="w-4 h-4 mr-2" />
-                    <span>{selectedProject.category}</span>
-                  </div>
-                  {selectedProject.price !== undefined &&
-                    selectedProject.price !== null && (
-                      <div className="flex items-center mr-6">
-                        <DollarSign className="w-4 h-4 mr-2 text-green-600" />
-                        <span>Cost: KSh {selectedProject.price}</span>
-                      </div>
-                    )}
-                  {selectedProject.collaborators &&
-                    selectedProject.collaborators.length > 0 && (
-                      <div className="flex items-center mr-6">
-                        <Users className="w-4 h-4 mr-2" />
-                        <span>
-                          Collaborators:{" "}
-                          {selectedProject.collaborators
-                            .map((c) => c.name)
-                            .join(", ")}
-                        </span>
-                      </div>
-                    )}
-
-                  {selectedProject.tech_stack && (
-                    <div className="flex items-center mr-6">
-                      <Tag className="w-4 h-4 mr-2" />
-                      <span>
-                        Tech Stack:{" "}
-                        {Array.isArray(selectedProject.tech_stack)
-                          ? selectedProject.tech_stack.join(", ")
-                          : selectedProject.tech_stack}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-700 mb-6 leading-relaxed flex-1">
-                  {selectedProject.description}
-                </p>
-                <div className="flex space-x-3 mb-6 flex-wrap gap-y-3">
-                  {" "}
-                  {/* Added flex-wrap and gap-y for better mobile display */}
-                  {selectedProject.github_link && (
-                    <a
-                      href={selectedProject.github_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-6 py-3 bg-gray-800 text-white rounded-full text-sm hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                  {filteredAndApprovedProjects.map((project) => (
+                    <motion.div
+                      key={project.id}
+                      className="mb-4 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300"
+                      whileHover={{ y: -5 }}
+                      onClick={() => setSelectedProject(project)}
                     >
-                      <Github className="w-4 h-4 mr-2" /> GitHub
-                    </a>
-                  )}
-                  {selectedProject.live_preview_url && (
-                    <a
-                      href={selectedProject.live_preview_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-6 py-3 bg-amber-600 text-white rounded-full text-sm hover:bg-amber-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" /> Live Demo
-                    </a>
-                  )}
-                  {selectedProject.buy_me_coffee_link && (
-                    <a
-                      href={selectedProject.buy_me_coffee_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                    >
-                      <DollarSign className="w-4 h-4 mr-2" /> Buy Me Coffee
-                    </a>
-                  )}
-                  {selectedProject.contactEmail && (
-                    <a
-                      href={`mailto:${selectedProject.contactEmail}`}
-                      className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-full text-sm hover:bg-purple-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                    >
-                      <Briefcase className="w-4 h-4 mr-2" />
-                      {selectedProject.collaborators &&
-                      selectedProject.collaborators.length > 0
-                        ? "Hire Team"
-                        : "Hire Me"}
-                    </a>
-                  )}
-                </div>
-                {selectedProject.contactEmail && (
-                  <div className="mb-4">
-                    <span className="font-semibold text-gray-800">
-                      Contact:
-                    </span>{" "}
-                    <a
-                      href={`mailto:${selectedProject.contactEmail}`}
-                      className="text-amber-600 hover:underline"
-                    >
-                      {selectedProject.contactEmail}
-                    </a>
-                  </div>
-                )}
-                {selectedProject.review_reason && (
-                  <div className="mb-4 text-red-600 text-sm">
-                    <span className="font-semibold">Rejection Reason:</span>{" "}
-                    {selectedProject.review_reason}
-                  </div>
-                )}
-                <div className="mt-auto pt-6 border-t border-gray-200">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                    Reviews
-                  </h3>
-                  {selectedProject.reviews &&
-                  selectedProject.reviews.length > 0 ? (
-                    <div className="space-y-4 max-h-40 overflow-y-auto pr-2">
-                      {" "}
-                      {/* Increased max-h to 40 for more visibility */}
-                      <div className="mb-4">
-                        <span className="font-semibold text-gray-800 mr-2">
-                          Average Rating:
-                        </span>
-                        <div className="flex items-center">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-5 h-5 ${
-                                i < getAverageRating(selectedProject.reviews)
-                                  ? "text-amber-400"
-                                  : "text-gray-300"
-                              }`}
-                              fill="currentColor"
-                            />
-                          ))}
-                          <span className="text-sm text-gray-600 ml-2">
-                            ({getAverageRating(selectedProject.reviews)} / 5
-                            Stars from {selectedProject.reviews.length} reviews)
-                          </span>
-                        </div>
-
-                        <div className="mt-4">
-                          <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                            Rating Distribution:
-                          </h4>
-                          {Object.entries(
-                            getRatingDistribution(selectedProject.reviews)
-                          )
-                            .sort(([a], [b]) => b - a)
-                            .map(([stars, count]) => {
-                              const totalReviews =
-                                selectedProject.reviews.length;
-                              const percentage =
-                                totalReviews > 0
-                                  ? (count / totalReviews) * 100
-                                  : 0;
-                              return (
-                                <div
-                                  key={stars}
-                                  className="flex items-center mb-1"
-                                >
-                                  <span className="w-6 text-sm text-gray-600">
-                                    {stars}★
-                                  </span>
-                                  <div className="w-full bg-gray-200 rounded-full h-2.5 mx-2">
-                                    <div
-                                      className="bg-amber-400 h-2.5 rounded-full"
-                                      style={{ width: `${percentage}%` }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-sm text-gray-600 w-8 text-right">
-                                    {count}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                      {selectedProject.reviews.map((review, index) => (
-                        <div
-                          key={index}
-                          className="bg-gray-50 p-4 rounded-xl shadow-sm"
-                        >
-                          <div className="flex items-center mb-2">
-                            <span className="font-semibold text-gray-800 mr-2">
-                              {review.reviewerName}
+                      <div className="relative pb-[133%] overflow-hidden">
+                        <img
+                          src={
+                            project.image_url ||
+                            "https://via.placeholder.com/400x500?text=No+Image"
+                          }
+                          alt={project.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                          <h3 className="text-white font-bold text-lg mb-2 line-clamp-2">
+                            {project.title}
+                          </h3>
+                          <p className="text-gray-200 text-sm line-clamp-2">
+                            {project.description}
+                          </p>
+                          <div className="flex items-center mt-3 text-sm text-white">
+                            <User className="h-4 w-4 mr-1" />
+                            <span>{project.uploaded_by}</span>
+                            <span className="mx-2">•</span>
+                            <span className="bg-teal-500/90 text-white px-2 py-0.5 rounded-full text-xs">
+                              {project.category}
                             </span>
-                            <div className="flex items-center">
-                              {Array.from({ length: 5 }, (_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${
-                                    i < review.rating
-                                      ? "text-amber-400"
-                                      : "text-gray-300"
-                                  }`}
-                                  fill="currentColor"
-                                />
-                              ))}
-                              <span className="text-sm text-gray-600 ml-2">
-                                ({review.rating})
+                          </div>
+                          {project.reviews?.length > 0 && (
+                            <div className="flex items-center mt-2">
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-4 w-4 ${
+                                      star <= (project.average_rating || 0)
+                                        ? "text-yellow-400 fill-current"
+                                        : "text-gray-300"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="ml-1 text-xs text-white">
+                                ({project.reviews.length})
                               </span>
                             </div>
-                          </div>
-                          <p className="text-gray-700 text-sm">
-                            "{review.comment}"
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-600">
-                      No reviews yet. Be the first to review!
-                    </p>
-                  )}
-
-                  {userRole === "student" && (
-                    <div className="mt-4 p-4 bg-amber-50 rounded-xl">
-                      <h4 className="text-lg font-semibold text-amber-800 mb-4">
-                        Submit a Review
-                      </h4>
-                      <div className="mb-4">
-                        <label
-                          htmlFor="rating"
-                          className="block text-gray-700 text-sm font-bold mb-2"
-                        >
-                          Rating:
-                        </label>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((starValue) => (
-                            <Star
-                              key={starValue}
-                              className={`w-6 h-6 cursor-pointer transition-colors duration-200
-                                ${
-                                  (hoverRating || newReview.rating) >= starValue
-                                    ? "text-amber-400 fill-current"
-                                    : "text-gray-300"
-                                }`}
-                              onClick={() =>
-                                setNewReview((prev) => ({
-                                  ...prev,
-                                  rating: starValue,
-                                }))
-                              }
-                              onMouseEnter={() => setHoverRating(starValue)}
-                              onMouseLeave={() => setHoverRating(0)}
-                            />
-                          ))}
-                          {(hoverRating > 0 || newReview.rating > 0) && (
-                            <span className="ml-2 text-sm text-gray-600">
-                              ({hoverRating || newReview.rating} Star
-                              {(hoverRating || newReview.rating) > 1 ? "s" : ""}
-                              )
-                            </span>
                           )}
                         </div>
                       </div>
-                      <div className="mb-6">
-                        <label
-                          htmlFor="comment"
-                          className="block text-gray-700 text-sm font-bold mb-2"
-                        >
-                          Comment:
-                        </label>
-                        <textarea
-                          id="comment"
-                          name="comment"
-                          value={newReview.comment}
-                          onChange={handleReviewChange}
-                          rows="4"
-                          className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200 resize-none"
-                          placeholder="Enter your comments here..."
-                        ></textarea>
+                    </motion.div>
+                  ))}
+                </Masonry>
+              )}
+
+              {/* Project Details Modal */}
+              <AnimatePresence>
+                {selectedProject && (
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row"
+                    >
+                      {/* Project Image */}
+                      <div className="md:w-1/2 h-64 md:h-auto bg-gray-100 dark:bg-gray-700">
+                        <img
+                          src={
+                            selectedProject.image_url ||
+                            "https://via.placeholder.com/800x1000?text=No+Image"
+                          }
+                          alt={selectedProject.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <button
-                        onClick={handleAddReview}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md"
-                      >
-                        Submit Review
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+
+                      {/* Project Details */}
+                      <div className="md:w-1/2 p-6 md:p-8 overflow-y-auto">
+                        <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                              {selectedProject.title}
+                            </h2>
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+                              <span className="flex items-center">
+                                <User className="w-4 h-4 mr-1" />
+                                {selectedProject.uploaded_by}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                {new Date(
+                                  selectedProject.created_at
+                                ).toLocaleDateString()}
+                              </span>
+                              <span className="bg-teal-500/10 text-teal-600 dark:text-teal-400 px-3 py-1 rounded-full text-xs font-medium">
+                                {selectedProject.category}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleCloseProjectModal}
+                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="prose dark:prose-invert max-w-none mb-6">
+                          <p className="text-gray-700 dark:text-gray-300">
+                            {selectedProject.description}
+                          </p>
+                        </div>
+
+                        {/* Skills */}
+                        {selectedProject.skills?.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 uppercase tracking-wider">
+                              Skills Used
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedProject.skills.map((skill, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Project Links */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                          {selectedProject.github && (
+                            <a
+                              href={selectedProject.github}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white transition-colors text-sm font-medium"
+                            >
+                              <Github className="w-4 h-4 mr-2" />
+                              View on GitHub
+                            </a>
+                          )}
+                          {selectedProject.live_link && (
+                            <a
+                              href={selectedProject.live_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition-colors text-sm font-medium"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Live Preview
+                            </a>
+                          )}
+                          <Link
+                            to={`/profile/${selectedProject.uploaded_by}`}
+                            className="sm:col-span-2 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors text-sm font-medium"
+                          >
+                            <User className="w-4 h-4 mr-2" />
+                            Buy {selectedProject.uploaded_by} Coffee
+                          </Link>
+                        </div>
+
+                        {/* Reviews Section */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                              Reviews ({selectedProject.reviews?.length || 0})
+                            </h4>
+                            {renderMessage()}
+                          </div>
+
+                          {/* Reviews List */}
+                          <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                            {selectedProject.reviews?.length > 0 ? (
+                              selectedProject.reviews.map((review, index) => (
+                                <div
+                                  key={index}
+                                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-medium text-gray-900 dark:text-white">
+                                      {review.reviewerName}
+                                    </span>
+                                    <div className="flex">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                          key={star}
+                                          className={`w-4 h-4 ${
+                                            star <= review.rating
+                                              ? "text-yellow-400 fill-current"
+                                              : "text-gray-300"
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    {review.comment}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                                No reviews yet. Be the first to review this
+                                project!
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Add Review Form */}
+                          <div className="mt-6">
+                            <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                              Share your thoughts
+                            </h5>
+                            <form
+                              onSubmit={handleAddReview}
+                              className="space-y-3"
+                            >
+                              <div className="flex items-center">
+                                <span className="text-sm text-gray-700 dark:text-gray-300 mr-3">
+                                  Your rating:
+                                </span>
+                                <div
+                                  className="flex"
+                                  onMouseLeave={() => setHoverRating(0)}
+                                >
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() =>
+                                        setNewReview((prev) => ({
+                                          ...prev,
+                                          rating: star,
+                                        }))
+                                      }
+                                      onMouseEnter={() => setHoverRating(star)}
+                                      className="p-1 focus:outline-none"
+                                    >
+                                      <Star
+                                        className={`w-5 h-5 ${
+                                          star <=
+                                          (hoverRating || newReview.rating)
+                                            ? "text-yellow-400 fill-current"
+                                            : "text-gray-300"
+                                        }`}
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <textarea
+                                  name="comment"
+                                  value={newReview.comment}
+                                  onChange={handleReviewChange}
+                                  placeholder="Share your experience with this project..."
+                                  rows="3"
+                                  className="w-full px-4 py-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                                  required
+                                />
+                              </div>
+                              <button
+                                type="submit"
+                                disabled={isSubmittingReview}
+                                className="w-full px-4 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isSubmittingReview
+                                  ? "Submitting..."
+                                  : "Submit Review"}
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+            </main>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
 export default ProjectLayout;
-

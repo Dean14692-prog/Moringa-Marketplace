@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from enum import Enum
 
 db = SQLAlchemy()
 
@@ -24,6 +25,92 @@ class Role(db.Model, SerializerMixin):
         db.session.add(role)
         db.session.commit()
         return role
+#############################################################################################
+# class User(db.Model, SerializerMixin):
+#     __tablename__ = 'users'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     username = db.Column(db.String(80), unique=True, nullable=False)
+#     first_name = db.Column(db.String(120), nullable=False)
+#     last_name = db.Column(db.String(120), nullable=False)
+#     email = db.Column(db.String(120), unique=True, nullable=False)
+#     _password_hash = db.Column(db.String(128), nullable=False)
+#     bio = db.Column(db.Text)
+#     profile_pic = db.Column(db.String(255))
+#     github = db.Column(db.String(255))
+#     linkedin = db.Column(db.String(255))
+#     skills = db.Column(db.String(255))
+#     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+#     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+#     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+#     role = db.relationship('Role', backref=db.backref('users', lazy=True))
+
+#     serialize_rules = (
+#         '-_password_hash',
+#         'role.name',
+#     )
+
+#     def serialize(self):
+#         return {
+#             'id': self.id,
+#             'username': self.username,
+#             'first_name': self.first_name,
+#             'last_name': self.last_name,
+#             'email': self.email,
+#             'bio': self.bio,
+#             'profile_pic': self.profile_pic,
+#             'github': self.github,
+#             'linkedin': self.linkedin,
+#             'skills': self.skills,
+#             'created_at': self.created_at.isoformat() if self.created_at else None,
+#             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+#             'role': self.role.name if self.role else None
+#         }
+
+#     def set_password(self, password):
+#         self._password_hash = generate_password_hash(password)
+
+#     def check_password(self, password):
+#         return check_password_hash(self._password_hash, password)
+
+#     @classmethod
+#     def create(cls, username, first_name, last_name, email, password, role_id, **kwargs):
+#         user = cls(
+#             username=username,
+#             first_name=first_name,
+#             last_name=last_name,
+#             email=email,
+#             role_id=role_id,
+#             **kwargs
+#         )
+#         user.set_password(password)
+#         db.session.add(user)
+#         db.session.commit()
+#         return user
+
+#     @classmethod
+#     def get_by_id(cls, user_id):
+#         return cls.query.get(user_id)
+
+#     @classmethod
+#     def get_by_email(cls, email):
+#         return cls.query.filter_by(email=email).first()
+
+#     @classmethod
+#     def get_by_username(cls, username):
+#         return cls.query.filter_by(username=username).first()
+
+#     def update(self, **kwargs):
+#         for key, value in kwargs.items():
+#             if hasattr(self, key):
+#                 setattr(self, key, value)
+#         db.session.commit()
+
+#     def delete(self):
+#         db.session.delete(self)
+#         db.session.commit()
+
 
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
@@ -35,15 +122,26 @@ class User(db.Model, SerializerMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     _password_hash = db.Column(db.String(128), nullable=False)
     bio = db.Column(db.Text)
-    profile_pic = db.Column(db.String(255))
+    profile_pic = db.Column(db.Text) # Changed to Text for base64 image
     github = db.Column(db.String(255))
     linkedin = db.Column(db.String(255))
-    skills = db.Column(db.String(255))
+    skills = db.Column(db.Text) # Changed to Text for potentially longer comma-separated skills
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     role = db.relationship('Role', backref=db.backref('users', lazy=True))
+
+    # --- New Profile Fields from Profile.jsx ---
+    title = db.Column(db.String(100))
+    location = db.Column(db.String(100))
+    join_date = db.Column(db.String(50)) # Storing as string for simplicity, can be Date
+    projects = db.Column(db.Integer, default=0)
+    contributions = db.Column(db.Integer, default=0)
+    cover_photo = db.Column(db.Text) # Base64 encoded image
+    cv_file = db.Column(db.Text) # Base64 encoded file
+    cv_file_name = db.Column(db.String(255))
+    # -------------------------------------------
 
     serialize_rules = (
         '-_password_hash',
@@ -51,28 +149,43 @@ class User(db.Model, SerializerMixin):
     )
 
     def serialize(self):
-        return {
+        # Extend the existing serialize method to include new fields
+        serialized_data = {
             'id': self.id,
             'username': self.username,
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
             'bio': self.bio,
-            'profile_pic': self.profile_pic,
+            'profilePicture': self.profile_pic, # Renamed to match frontend state
             'github': self.github,
             'linkedin': self.linkedin,
-            'skills': self.skills,
+            'skills': self.skills.split(',') if self.skills else [], # Convert comma-separated string to list
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'role': self.role.name if self.role else None
+            'role': self.role.name if self.role else None,
+            # Add new fields
+            'title': self.title,
+            'location': self.location,
+            'joinDate': self.join_date, # Renamed to match frontend state
+            'projects': self.projects,
+            'contributions': self.contributions,
+            'coverPhoto': self.cover_photo, # Renamed to match frontend state
+            'cvFile': self.cv_file,
+            'cvFileName': self.cv_file_name,
         }
+        return serialized_data
 
     def set_password(self, password):
         self._password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self._password_hash, password)
-
+    
+    @classmethod
+    def get_by_username(cls, username):
+        return cls.query.filter_by(username=username).first()
+    
     @classmethod
     def create(cls, username, first_name, last_name, email, password, role_id, **kwargs):
         user = cls(
@@ -110,14 +223,15 @@ class User(db.Model, SerializerMixin):
         db.session.delete(self)
         db.session.commit()
 
+#################################################################################
+# class Project(db.Model, SerializerMixin):
+
 class Project(db.Model, SerializerMixin):
     __tablename__ = 'projects'
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    # --- MODIFICATION START ---
-    # Use db.JSON for JSON column, no length needed
-    collaborators = db.Column(db.JSON, nullable=False) 
-    # --- MODIFICATION END ---
+    collaborators = db.Column(db.JSON, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     tech_stack = db.Column(db.String(255))
@@ -134,7 +248,9 @@ class Project(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
+    # Relationships
     user = db.relationship('User', foreign_keys=[uploaded_by], backref='uploaded_projects')
+    reviews = db.relationship('Review', backref='project', cascade='all, delete-orphan')
 
     serialize_rules = (
         '-users_projects.project',
@@ -142,8 +258,8 @@ class Project(db.Model, SerializerMixin):
     )
 
     def serialize(self):
+        # Serialize collaborators safely
         serialized_collaborators = []
-        # Ensure self.collaborators is iterable and contains dictionaries
         if isinstance(self.collaborators, list):
             for collab in self.collaborators:
                 if isinstance(collab, dict) and 'name' in collab and 'email' in collab:
@@ -152,16 +268,18 @@ class Project(db.Model, SerializerMixin):
                         'email': collab['email']
                     })
         elif isinstance(self.collaborators, dict) and 'name' in self.collaborators and 'email' in self.collaborators:
-            # Fallback for a single dictionary if that somehow gets stored
             serialized_collaborators.append({
                 'name': self.collaborators['name'],
                 'email': self.collaborators['email']
             })
-        
+
+        # ✅ Serialize all related reviews using their own serialize() method
+        reviews_data = [r.serialize() for r in self.reviews]
+
         return {
             'id': self.id,
             'title': self.title,
-            'collaborators': serialized_collaborators, # Now correctly serializing the list
+            'collaborators': serialized_collaborators,
             'category': self.category,
             'description': self.description,
             'tech_stack': self.tech_stack,
@@ -177,6 +295,7 @@ class Project(db.Model, SerializerMixin):
             'file': self.file,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'reviews': reviews_data  # ✅ Correctly serialized reviews
         }
 
     @classmethod
@@ -222,6 +341,7 @@ class Project(db.Model, SerializerMixin):
             q = q.filter_by(isApproved=isApproved)
         return q.all()
 
+#################################################################################
 
 class UsersProject(db.Model, SerializerMixin):
     __tablename__ = 'users_projects'
@@ -266,18 +386,49 @@ class UsersProject(db.Model, SerializerMixin):
 #     )
 
 #########################################################################################
+# class Review(db.Model, SerializerMixin):
+#     __tablename__ = 'reviews'
+#     id = db.Column(db.Integer, primary_key=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+#     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+#     rating = db.Column(db.Integer, nullable=False) # e.g., 1-5
+#     comment = db.Column(db.Text)
+#     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+#     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+#     # Add a relationship to the User model
+#     # 'User' should be the actual class name of your User model
+#     user = db.relationship('User', backref='reviews_by_user')
+
+#     def serialize(self):
+#         return {
+#             'id': self.id,
+#             'rating': self.rating,
+#             'comment': self.comment,
+#             'user_id': self.user_id,
+#             'project_id': self.project_id,
+#             'reviewerName': self.user.username if self.user else None # <--- IMPORTANT: Get username from the related User object
+#         }
+
+#     @classmethod
+#     def create(cls, **kwargs):
+#         review = cls(**kwargs)
+#         db.session.add(review)
+#         db.session.commit()
+#         return review
+
 class Review(db.Model, SerializerMixin):
     __tablename__ = 'reviews'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    rating = db.Column(db.Integer, nullable=False) # e.g., 1-5
+    rating = db.Column(db.Integer, nullable=False)  # e.g., 1-5
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    # Add a relationship to the User model
-    # 'User' should be the actual class name of your User model
+    # Relationship to User
     user = db.relationship('User', backref='reviews_by_user')
 
     def serialize(self):
@@ -287,7 +438,7 @@ class Review(db.Model, SerializerMixin):
             'comment': self.comment,
             'user_id': self.user_id,
             'project_id': self.project_id,
-            'reviewerName': self.user.username if self.user else None # <--- IMPORTANT: Get username from the related User object
+            'reviewerName': self.user.username if self.user else None  # ✅ Get reviewer name dynamically
         }
 
     @classmethod
@@ -537,3 +688,58 @@ class PaymentLog(db.Model):
     checkout_request_id = db.Column(db.String(100), nullable=True)
     description = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class ContactStatus(Enum):
+    NEW = 'new'
+    IN_PROGRESS = 'in_progress'
+    RESOLVED = 'resolved'
+    SPAM = 'spam'
+
+class Contact(db.Model, SerializerMixin):
+    __tablename__ = 'contacts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(20))
+    subject = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    course = db.Column(db.String(100))
+    status = db.Column(db.Enum(ContactStatus), default=ContactStatus.NEW, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    notes = db.Column(db.Text)
+    
+    serialize_rules = ('-notes',)
+    
+    def __repr__(self):
+        return f'<Contact {self.name} - {self.subject}>'
+    
+    @classmethod
+    def create(cls, **kwargs):
+        contact = cls(**kwargs)
+        db.session.add(contact)
+        db.session.commit()
+        return contact
+    
+    @classmethod
+    def get_by_id(cls, contact_id):
+        return cls.query.get(contact_id)
+    
+    @classmethod
+    def get_all(cls, status=None):
+        query = cls.query
+        if status:
+            query = query.filter_by(status=status)
+        return query.order_by(cls.submitted_at.desc()).all()
+    
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        db.session.commit()
+        return self
+    
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
