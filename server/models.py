@@ -247,6 +247,25 @@ class UsersProject(db.Model, SerializerMixin):
         return record
 
 
+# class Review(db.Model, SerializerMixin):
+#     __tablename__ = 'reviews'
+#     id = db.Column(db.Integer, primary_key=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+#     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+#     rating = db.Column(db.Integer, nullable=False) # e.g., 1-5
+#     comment = db.Column(db.Text)
+#     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+#     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+#     user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+#     project = db.relationship('Project', backref=db.backref('reviews', lazy=True))
+
+#     serialize_rules = (
+#         '-user.reviews',
+#         '-project.reviews',
+#     )
+
+#########################################################################################
 class Review(db.Model, SerializerMixin):
     __tablename__ = 'reviews'
     id = db.Column(db.Integer, primary_key=True)
@@ -257,13 +276,19 @@ class Review(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
-    project = db.relationship('Project', backref=db.backref('reviews', lazy=True))
+    # Add a relationship to the User model
+    # 'User' should be the actual class name of your User model
+    user = db.relationship('User', backref='reviews_by_user')
 
-    serialize_rules = (
-        '-user.reviews',
-        '-project.reviews',
-    )
+    def serialize(self):
+        return {
+            'id': self.id,
+            'rating': self.rating,
+            'comment': self.comment,
+            'user_id': self.user_id,
+            'project_id': self.project_id,
+            'reviewerName': self.user.username if self.user else None # <--- IMPORTANT: Get username from the related User object
+        }
 
     @classmethod
     def create(cls, **kwargs):
@@ -271,6 +296,10 @@ class Review(db.Model, SerializerMixin):
         db.session.add(review)
         db.session.commit()
         return review
+
+#########################################################################################
+
+
 
 class Merchandise(db.Model, SerializerMixin):
     __tablename__ = 'merchandise'
@@ -495,3 +524,16 @@ class Payment(db.Model, SerializerMixin):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+class PaymentLog(db.Model):
+    __tablename__ = 'payment_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(20), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default="initiated")
+    receipt_number = db.Column(db.String(100), nullable=True)
+    merchant_request_id = db.Column(db.String(100), nullable=True)
+    checkout_request_id = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())

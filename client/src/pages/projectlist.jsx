@@ -6,34 +6,28 @@ import {
   User,
   Calendar,
   Tag,
-  ChevronLeft,
-  ChevronRight,
   Search,
-  Filter,
   Home,
   LogOut,
   CheckCircle,
   Clock,
   XCircle,
-  FolderKanban,
   Users,
   ExternalLink,
   Github,
   DollarSign,
   Briefcase,
-  Settings,
-  Plus,
 } from "lucide-react";
 
 const ProjectLayout = () => {
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedProject, setSelectedProject] = useState(null);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [newReview, setNewReview] = useState({
     rating: 5,
     comment: "",
-    reviewerName: "Anonymous User",
+    reviewerName: "Anonymous User", // Default value, will be updated by user profile
   });
+  const [hoverRating, setHoverRating] = useState(0); // New state for star hover effect
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [userEmail, setUserEmail] = useState(null);
@@ -45,7 +39,7 @@ const ProjectLayout = () => {
 
   const navigate = useNavigate();
 
-  const API_BASE_URL = "http://127.0.0.1:5555";
+  const API_BASE_URL = "http://127.0.0.1:5555"; // Your API base URL
 
   const projectHeightsRef = useRef({});
 
@@ -78,6 +72,10 @@ const ProjectLayout = () => {
           setUserEmail(userData.email);
           setUsername(userData.username);
           setUserRole(userData.role);
+          setNewReview((prev) => ({
+            ...prev,
+            reviewerName: userData.username, // Set reviewerName from fetched username
+          }));
         } else {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
@@ -87,6 +85,8 @@ const ProjectLayout = () => {
           navigate("/login");
         }
       } catch (error) {
+        // Handle network errors or other issues
+        console.error("Error fetching user profile:", error);
         navigate("/login");
       } finally {
         setIsLoading(false);
@@ -121,13 +121,14 @@ const ProjectLayout = () => {
         setProjects(projectsWithHeights);
       } catch (err) {
         setError("Failed to load projects.");
+        console.error("Error fetching projects:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProjects();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -137,8 +138,6 @@ const ProjectLayout = () => {
     setUserRole(null);
     navigate("/login");
   };
-
-  const defaultItemsPerPage = 25;
 
   const filteredAndApprovedProjects = useMemo(() => {
     return projects.filter((project) => {
@@ -152,15 +151,8 @@ const ProjectLayout = () => {
     });
   }, [projects, selectedFilterCategory, searchTerm]);
 
-  const totalPages = Math.ceil(
-    filteredAndApprovedProjects.length / defaultItemsPerPage
-  );
-  const startIndex = (currentPage - 1) * defaultItemsPerPage;
-  const endIndex = startIndex + defaultItemsPerPage;
-  const currentPaginatedProjects = filteredAndApprovedProjects.slice(
-    startIndex,
-    endIndex
-  );
+  // Projects to display are already filtered and approved
+  const projectsToDisplay = filteredAndApprovedProjects;
 
   const handleReviewChange = (e) => {
     const { name, value } = e.target;
@@ -190,7 +182,7 @@ const ProjectLayout = () => {
           body: JSON.stringify({
             rating: parseInt(newReview.rating),
             comment: newReview.comment,
-            reviewerName: username,
+            reviewerName: username, // Ensure reviewerName is sent from state
           }),
         }
       );
@@ -208,7 +200,7 @@ const ProjectLayout = () => {
         setNewReview({
           rating: 5,
           comment: "",
-          reviewerName: username,
+          reviewerName: username, // Reset with current username
         });
         alert("Review added successfully!");
       } else {
@@ -216,7 +208,8 @@ const ProjectLayout = () => {
         alert(`Failed to add review: ${errorData.msg || response.statusText}`);
       }
     } catch (error) {
-      alert("An error occurred while adding the review.");
+      console.error("Error adding review:", error);
+      alert("An error occurred while adding the review. Please try again.");
     }
   };
 
@@ -282,36 +275,41 @@ const ProjectLayout = () => {
     } else if (userRole === "student") {
       return "/dashboard";
     } else {
-      return "/home";
+      return "/home"; // Default home if role is unknown or not set
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Fixed Sidebar */}
       <div className="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-4 fixed left-0 top-0 h-full z-40 shadow-sm">
         <nav className="flex flex-col gap-2">
           <Link
             to={getHomeLink()}
-            className="p-3 rounded-full  bg-teal-500 text-white hover:bg-teal-700 transition-colors"
+            className="p-3 rounded-full bg-teal-500 text-white hover:bg-teal-700 transition-colors"
           >
             <Home size={20} />
           </Link>
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs text-gray-600">
-            {username ? username.charAt(0).toUpperCase() : "U"}
-          </div>
+          {username && (
+            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs text-gray-600">
+              {username.charAt(0).toUpperCase()}
+            </div>
+          )}
           <button
             onClick={handleLogout}
-            className="p-3 rounded-full  bg-teal-500 hover:bg-teal-600 text-black transition-colors"
+            className="p-3 rounded-full bg-teal-500 hover:bg-teal-600 text-white transition-colors" // Changed text-black to text-white for better contrast
           >
             <LogOut size={20} />
           </button>
         </div>
       </div>
 
+      {/* Main Content Area */}
       <div className="flex-1 ml-20">
+        {/* Header/Navbar */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <h1 className="text-2xl font-bold text-gray-900 hidden sm:block">
@@ -330,14 +328,15 @@ const ProjectLayout = () => {
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setCurrentPage(1);
                   }}
                 />
               </div>
             </div>
+            {/* You could add category filters here if desired */}
           </div>
         </header>
 
+        {/* Projects Grid */}
         <main className="px-6 py-6">
           <div className="max-w-7xl mx-auto">
             {filteredAndApprovedProjects.length === 0 && (
@@ -347,7 +346,7 @@ const ProjectLayout = () => {
             )}
 
             <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6 space-y-6">
-              {currentPaginatedProjects.map((project) => (
+              {projectsToDisplay.map((project) => (
                 <div
                   key={project.id}
                   className="relative break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
@@ -372,10 +371,10 @@ const ProjectLayout = () => {
                       }`}
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="h-screen absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     <div className="absolute inset-x-0 bottom-0 p-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <h3 className="text-lg font-bold text-teal-500  mb-1 drop-shadow-sm">
+                      <h3 className="text-lg font-bold text-teal-500 mb-1 drop-shadow-sm">
                         {project.title}
                       </h3>
                       <p className="text-teal-500 font-bold text-sm drop-shadow-sm">
@@ -400,59 +399,12 @@ const ProjectLayout = () => {
               ))}
             </div>
           </div>
-
-          {filteredAndApprovedProjects.length > defaultItemsPerPage && (
-            <div className="flex justify-center items-center space-x-2 mt-12">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="p-3 rounded-full bg-white text-gray-600 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
-                      currentPage === pageNum
-                        ? " bg-teal-500 text-white shadow-md"
-                        : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="p-3 rounded-full bg-white text-gray-600 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
         </main>
+
+        {/* Project Details Modal */}
         {selectedProject && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full mx-auto my-8 flex flex-col lg:flex-row overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full mx-auto my-2 flex flex-col lg:flex-row overflow-hidden">
               <div className="relative lg:w-1/2 h-80 lg:h-auto">
                 <img
                   src={
@@ -469,12 +421,10 @@ const ProjectLayout = () => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-
-              <div className="lg:w-1/2 p-8 flex flex-col">
+              <div className="lg:w-1/2 p-4 flex flex-col">
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">
                   {selectedProject.title}
                 </h2>
-
                 <div className="flex flex-wrap items-center text-gray-600 text-sm mb-6 gap-y-2">
                   <div className="flex items-center mr-6">
                     <User className="w-4 h-4 mr-2" />
@@ -501,12 +451,13 @@ const ProjectLayout = () => {
                         <Users className="w-4 h-4 mr-2" />
                         <span>
                           Collaborators:{" "}
-                          {Array.isArray(selectedProject.collaborators)
-                            ? selectedProject.collaborators.join(", ")
-                            : selectedProject.collaborators}
+                          {selectedProject.collaborators
+                            .map((c) => c.name)
+                            .join(", ")}
                         </span>
                       </div>
                     )}
+
                   {selectedProject.tech_stack && (
                     <div className="flex items-center mr-6">
                       <Tag className="w-4 h-4 mr-2" />
@@ -519,12 +470,12 @@ const ProjectLayout = () => {
                     </div>
                   )}
                 </div>
-
                 <p className="text-gray-700 mb-6 leading-relaxed flex-1">
                   {selectedProject.description}
                 </p>
-
-                <div className="flex space-x-3 mb-6">
+                <div className="flex space-x-3 mb-6 flex-wrap gap-y-3">
+                  {" "}
+                  {/* Added flex-wrap and gap-y for better mobile display */}
                   {selectedProject.github_link && (
                     <a
                       href={selectedProject.github_link}
@@ -545,6 +496,16 @@ const ProjectLayout = () => {
                       <ExternalLink className="w-4 h-4 mr-2" /> Live Demo
                     </a>
                   )}
+                  {selectedProject.buy_me_coffee_link && (
+                    <a
+                      href={selectedProject.buy_me_coffee_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" /> Buy Me Coffee
+                    </a>
+                  )}
                   {selectedProject.contactEmail && (
                     <a
                       href={`mailto:${selectedProject.contactEmail}`}
@@ -558,7 +519,6 @@ const ProjectLayout = () => {
                     </a>
                   )}
                 </div>
-
                 {selectedProject.contactEmail && (
                   <div className="mb-4">
                     <span className="font-semibold text-gray-800">
@@ -572,21 +532,21 @@ const ProjectLayout = () => {
                     </a>
                   </div>
                 )}
-
                 {selectedProject.review_reason && (
                   <div className="mb-4 text-red-600 text-sm">
                     <span className="font-semibold">Rejection Reason:</span>{" "}
                     {selectedProject.review_reason}
                   </div>
                 )}
-
                 <div className="mt-auto pt-6 border-t border-gray-200">
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Reviews
                   </h3>
                   {selectedProject.reviews &&
                   selectedProject.reviews.length > 0 ? (
-                    <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
+                    <div className="space-y-4 max-h-40 overflow-y-auto pr-2">
+                      {" "}
+                      {/* Increased max-h to 40 for more visibility */}
                       <div className="mb-4">
                         <span className="font-semibold text-gray-800 mr-2">
                           Average Rating:
@@ -646,7 +606,6 @@ const ProjectLayout = () => {
                             })}
                         </div>
                       </div>
-
                       {selectedProject.reviews.map((review, index) => (
                         <div
                           key={index}
@@ -686,7 +645,7 @@ const ProjectLayout = () => {
                   )}
 
                   {userRole === "student" && (
-                    <div className="mt-6 p-6 bg-amber-50 rounded-xl">
+                    <div className="mt-4 p-4 bg-amber-50 rounded-xl">
                       <h4 className="text-lg font-semibold text-amber-800 mb-4">
                         Submit a Review
                       </h4>
@@ -697,19 +656,34 @@ const ProjectLayout = () => {
                         >
                           Rating:
                         </label>
-                        <select
-                          id="rating"
-                          name="rating"
-                          value={newReview.rating}
-                          onChange={handleReviewChange}
-                          className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
-                        >
-                          {[1, 2, 3, 4, 5].map((num) => (
-                            <option key={num} value={num}>
-                              {num} Star{num > 1 ? "s" : ""}
-                            </option>
+                        <div className="flex items-center space-x-1">
+                          {[1, 2, 3, 4, 5].map((starValue) => (
+                            <Star
+                              key={starValue}
+                              className={`w-6 h-6 cursor-pointer transition-colors duration-200
+                                ${
+                                  (hoverRating || newReview.rating) >= starValue
+                                    ? "text-amber-400 fill-current"
+                                    : "text-gray-300"
+                                }`}
+                              onClick={() =>
+                                setNewReview((prev) => ({
+                                  ...prev,
+                                  rating: starValue,
+                                }))
+                              }
+                              onMouseEnter={() => setHoverRating(starValue)}
+                              onMouseLeave={() => setHoverRating(0)}
+                            />
                           ))}
-                        </select>
+                          {(hoverRating > 0 || newReview.rating > 0) && (
+                            <span className="ml-2 text-sm text-gray-600">
+                              ({hoverRating || newReview.rating} Star
+                              {(hoverRating || newReview.rating) > 1 ? "s" : ""}
+                              )
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="mb-6">
                         <label
@@ -747,3 +721,4 @@ const ProjectLayout = () => {
 };
 
 export default ProjectLayout;
+

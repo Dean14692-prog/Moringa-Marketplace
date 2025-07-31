@@ -752,7 +752,7 @@
 
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem
+from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, PaymentLog
 import os
 import json
 from flask_cors import CORS
@@ -763,6 +763,7 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import cohere # Added Cohere import
+from mpesa import lipa_na_mpesa_online
 
 # --- Configuration ---
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -1349,6 +1350,134 @@ class MerchandiseCatalog(Resource):
         merchandise_items = Merchandise.query.filter(Merchandise.stock_quantity > 0).all()
         return [item.serialize() for item in merchandise_items], 200
 
+###################################################################################
+####Review#############
+class ProjectReviews(Resource):
+    """Manages reviews for a specific project."""
+
+    # GET: Retrieve all reviews for a project
+    def get(self, project_id):
+        project = Project.get_by_id(project_id)
+        if not project:
+            return {"msg": "Project not found"}, 404
+
+        reviews = Review.query.filter_by(project_id=project_id).all()
+        return [review.serialize() for review in reviews], 200
+
+    # POST: Add a new review to a project (requires authentication)
+    @jwt_required()
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        project = Project.get_by_id(project_id)
+        if not project:
+            return {"msg": "Project not found"}, 404
+
+        data = request.get_json()
+        rating = data.get('rating')
+        comment = data.get('comment')
+
+        if not all([rating, comment]):
+            return {"msg": "Rating and comment are required"}, 400
+
+        # Basic validation for rating
+        try:
+            rating = int(rating)
+            if not (1 <= rating <= 5):
+                return {"msg": "Rating must be between 1 and 5"}, 400
+        except ValueError:
+            return {"msg": "Rating must be an integer"}, 400
+
+        # Prevent a user from reviewing the same project multiple times
+        existing_review = Review.query.filter_by(
+            user_id=current_user_id,
+            project_id=project_id
+        ).first()
+        if existing_review:
+            return {"msg": "You have already reviewed this project"}, 409
+
+        try:
+            new_review = Review.create(
+                user_id=current_user_id,
+                project_id=project_id,
+                rating=rating,
+                comment=comment
+            )
+            return new_review.serialize(), 201
+        except IntegrityError:
+            db.session.rollback()
+            return {"msg": "Database error adding review."}, 500
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating review: {e}")
+            return {"msg": "An unexpected error occurred while adding the review."}, 500
+
+    # DELETE: Delete a specific review (only by the review owner or admin)
+    @jwt_required()
+    def delete(self, project_id, review_id):
+        current_user_id = get_jwt_identity()
+        current_user = User.get_by_id(current_user_id)
+
+        review = Review.get_by_id(review_id)
+        if not review:
+            return {"msg": "Review not found"}, 404
+
+        # Ensure the review belongs to the specified project (optional but good for consistency)
+        if review.project_id != project_id:
+            return {"msg": "Review does not belong to this project"}, 400
+
+        # Check if the current user is the owner of the review or an admin
+        if str(review.user_id) != current_user_id and (not current_user or current_user.role.name != 'admin'):
+            return {"msg": "You are not authorized to delete this review"}, 403
+
+        try:
+            review.delete()
+            return {"msg": "Review deleted successfully"}, 204
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting review: {e}")
+            return {"msg": "An unexpected error occurred while deleting the review."}, 500
+
+    # PATCH: Update a specific review (only by the review owner)
+    @jwt_required()
+    def patch(self, project_id, review_id):
+        current_user_id = get_jwt_identity()
+
+        review = Review.get_by_id(review_id)
+        if not review:
+            return {"msg": "Review not found"}, 404
+
+        # Ensure the review belongs to the specified project
+        if review.project_id != project_id:
+            return {"msg": "Review does not belong to this project"}, 400
+
+        # Only the owner of the review can update it
+        if str(review.user_id) != current_user_id:
+            return {"msg": "You are not authorized to update this review"}, 403
+
+        data = request.get_json()
+        
+        # Only allow updating rating and comment
+        if 'rating' in data:
+            try:
+                new_rating = int(data['rating'])
+                if not (1 <= new_rating <= 5):
+                    return {"msg": "Rating must be between 1 and 5"}, 400
+                review.rating = new_rating
+            except ValueError:
+                return {"msg": "Rating must be an integer"}, 400
+        
+        if 'comment' in data:
+            review.comment = data['comment']
+        
+        try:
+            db.session.commit() # Save changes
+            return review.serialize(), 200
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating review: {e}")
+            return {"msg": "An unexpected error occurred while updating the review."}, 500
+
+##################################################################################
 
 class UserCart(Resource):
     """Manages user's shopping cart."""
@@ -1471,7 +1600,90 @@ class UserOrders(Resource):
         orders = Order.query.filter_by(user_id=current_user_id).filter(Order.payment_status != 'Pending').all()
         return [order.serialize() for order in orders], 200
 
+@app.route("/stk_push", methods=["POST"])
+def stk_push():
+    data = request.json
+    phone = data.get("phone")
+    amount = data.get("amount")
+
+    if not phone or not amount:
+        return jsonify({"error": "Missing phone or amount"}), 400
+
+    # ✅ 1. Initiate STK Push
+    response = lipa_na_mpesa_online(phone, amount)
+
+    # ✅ 2. Extract STK identifiers to log
+    merchant_id = response.get("MerchantRequestID")
+    checkout_id = response.get("CheckoutRequestID")
+
+    # ✅ 3. Save to PaymentLog BEFORE callback
+    if merchant_id and checkout_id:
+        new_log = PaymentLog(
+            phone=phone,
+            amount=amount,
+            status="pending",
+            merchant_request_id=merchant_id,
+            checkout_request_id=checkout_id
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+    return jsonify(response)
+####################################################################
+
+# 📞 M-Pesa Callback Route
+@app.route("/api/mpesa/callback", methods=["POST"])
+def mpesa_callback():
+    data = request.get_json()
+    body = data.get("Body", {})
+    stk_callback = body.get("stkCallback", {})
+
+    merchant_id = stk_callback.get("MerchantRequestID")
+    checkout_id = stk_callback.get("CheckoutRequestID")
+    result_code = stk_callback.get("ResultCode")
+    result_desc = stk_callback.get("ResultDesc")
+
+    # Lookup by both IDs
+    log = PaymentLog.query.filter_by(
+        merchant_request_id=merchant_id,
+        checkout_request_id=checkout_id
+    ).first()
+
+    if log:
+        log.status = "success" if result_code == 0 else "failed"
+        log.description = result_desc
+
+        # Extract receipt if available
+        items = stk_callback.get("CallbackMetadata", {}).get("Item", [])
+        for item in items:
+            if item.get("Name") == "MpesaReceiptNumber":
+                log.receipt_number = item.get("Value")
+        db.session.commit()
+        return jsonify({"message": "Payment log updated"}), 200
+
+    return jsonify({"error": "Transaction not found"}), 404
+
+# 📜 View Logs
+@app.route("/logs", methods=["GET"])
+def logs():
+    logs = PaymentLog.query.order_by(PaymentLog.created_at.desc()).all()
+    return jsonify([
+        {
+            "id": log.id,
+            "phone": log.phone,
+            "amount": log.amount,
+            "status": log.status,
+            "merchant_request_id": log.merchant_request_id,
+            "checkout_request_id": log.checkout_request_id,
+            "receipt_number": log.receipt_number,
+            "description": log.description,
+            "created_at": log.created_at.isoformat()
+        }
+        for log in logs
+    ])
+########################################################################################
 # --- Register API Resources with the Blueprint ---
+api.add_resource(ProjectReviews, '/projects/<int:project_id>/reviews', '/projects/<int:project_id>/reviews/<int:review_id>')
 api.add_resource(Chatbot, '/ask') # Registered the new Chatbot resource
 api.add_resource(AuthRegister, '/auth/register')
 api.add_resource(AuthLogin, '/auth/login')
