@@ -6,3 +6,4 @@
 moringa_marketplace.db
 moringa_marketplace.db-journalserver/.env
 server/.env
+venv
