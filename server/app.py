@@ -752,7 +752,7 @@
 from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, Contact, ContactStatus, PaymentLog
+from .models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, Contact, ContactStatus, PaymentLog
 import os
 
 import json
