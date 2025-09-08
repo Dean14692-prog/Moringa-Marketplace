@@ -3,7 +3,7 @@
 from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory, Blueprint
 from flask_restful import Api, Resource
-from .models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, Contact, ContactStatus, PaymentLog
+from models import db, User, Role, Project, UsersProject, Review, Merchandise, Order, OrderItem, Contact, ContactStatus, PaymentLog
 import os
 import requests
 
@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import cohere # Added Cohere import
-from .mpesa import lipa_na_mpesa_online
+from mpesa import lipa_na_mpesa_online
 
 
 # --- Configuration ---
