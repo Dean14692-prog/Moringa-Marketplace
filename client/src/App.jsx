@@ -83,7 +83,6 @@ function App() {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/projects" element={<ProjectLayout />} />
         <Route path="/shop" element={<EcommerceLayout />} />
-        {/* Corrected the component name from ProfilePage to Profile */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/my-projects" element={<MyProjects />} />
