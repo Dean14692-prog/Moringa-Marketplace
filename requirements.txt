@@ -114,3 +114,4 @@ virtualenv==20.31.1
 wcwidth==0.2.13
 Werkzeug==3.0.6
 zipp==3.20.2
+gunicorn
