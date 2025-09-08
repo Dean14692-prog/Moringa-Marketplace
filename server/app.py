@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import cohere # Added Cohere import
-from mpesa import lipa_na_mpesa_online
+from .mpesa import lipa_na_mpesa_online
 
 
 # --- Configuration ---
