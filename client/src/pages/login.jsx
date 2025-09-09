@@ -16,7 +16,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const API_URL =
-    import.meta.env.VITE_REACT_APP_API_URL || "http://localhost:5555";
+    import.meta.env.VITE_REACT_APP_API_URL
   console.log("API_URL in production:", API_URL);
   // New state to manage initial redirect check status
   const [isRedirectCheckDone, setIsRedirectCheckDone] = useState(false);
