@@ -41,9 +41,7 @@ app = Flask(__name__, instance_relative_config=True)
 CORS_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    # "http://localhost:5555",
-    "https://moringa-marketplace.onrender.com",
-    
+    "http://localhost:5555",
     "http://127.0.0.1:5555"
 ]
 
