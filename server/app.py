@@ -43,7 +43,8 @@ CORS_ORIGINS = [
     "http://127.0.0.1:5173",
     # "http://localhost:5555",
     # "http://127.0.0.1:5555",
-    "https://moringa-marketplace-3bpi.vercel.app" 
+    "https://moringa-marketplace-3bpi.vercel.app",
+    "https://moringa-marketplace-3bpi-4cds0lcmo-dennis-nguis-projects.vercel.app"
 ]
 
 # Enable CORS with explicit configuration
