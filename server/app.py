@@ -229,36 +229,67 @@ class AuthRegister(Resource):
 
 
 
+# class AuthLogin(Resource):
+#     def post(self):
+#         data = request.get_json()
+#         email = data.get('email')
+#         password = data.get('password')
+
+#         print(f"[LOGIN ATTEMPT] Email: {email}, Password: {password}")
+
+#         if not all([email, password]):
+#             print("[ERROR] Missing email or password")
+#             return {"msg": "Email and password are required"}, 400
+
+#         user = User.get_by_email(email)
+#         print(f"[USER FETCH] Found: {user is not None}")
+
+#         if user:
+#             print(f"[PASSWORD CHECK] Match: {user.check_password(password)}")
+
+#         if user and user.check_password(password):
+#             access_token = create_access_token(identity=str(user.id))
+#             refresh_token = create_refresh_token(identity=str(user.id))
+#             print("[SUCCESS] Tokens created")
+#             return {
+#                 "access_token": access_token,
+#                 "refresh_token": refresh_token,
+#                 "role": user.role.name if user.role else "user"
+#             }, 200
+
+#         print("[FAILURE] Invalid credentials")
+#         return {"msg": "Invalid credentials"}, 401
+
 class AuthLogin(Resource):
     def post(self):
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
+        try:
+            data = request.get_json()
+            email = data.get("email")
+            password = data.get("password")
+            
+            print(f"[LOGIN ATTEMPT] Email: {email}")
 
-        print(f"[LOGIN ATTEMPT] Email: {email}, Password: {password}")
+            if not all([email, password]):
+                return {"msg": "Email and password are required"}, 400
 
-        if not all([email, password]):
-            print("[ERROR] Missing email or password")
-            return {"msg": "Email and password are required"}, 400
+            user = User.get_by_email(email)
+            print(f"[USER FETCH] Found: {user is not None}")
 
-        user = User.get_by_email(email)
-        print(f"[USER FETCH] Found: {user is not None}")
+            if user and user.check_password(password):
+                access_token = create_access_token(identity=str(user.id))
+                refresh_token = create_refresh_token(identity=str(user.id))
+                role_name = getattr(user.role, "name", "user")
+                return {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "role": role_name
+                }, 200
 
-        if user:
-            print(f"[PASSWORD CHECK] Match: {user.check_password(password)}")
+            return {"msg": "Invalid credentials"}, 401
 
-        if user and user.check_password(password):
-            access_token = create_access_token(identity=str(user.id))
-            refresh_token = create_refresh_token(identity=str(user.id))
-            print("[SUCCESS] Tokens created")
-            return {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "role": user.role.name if user.role else "user"
-            }, 200
-
-        print("[FAILURE] Invalid credentials")
-        return {"msg": "Invalid credentials"}, 401
+        except Exception as e:
+            print(f"[ERROR] Login failed: {e}")
+            return {"msg": "Internal server error"}, 500
 
 
 class UserProfile(Resource):
